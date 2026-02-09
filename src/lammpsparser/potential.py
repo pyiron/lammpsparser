@@ -138,10 +138,12 @@ class PotentialAbstract:
                                 lambda x: x.replace("'", "").strip("[]").split(", ")
                             ),
                             "Config": (
-                                lambda x: x.replace("'", "")
-                                .replace("\\n", "\n")
-                                .strip("[]")
-                                .split(", ")
+                                lambda x: (
+                                    x.replace("'", "")
+                                    .replace("\\n", "\n")
+                                    .strip("[]")
+                                    .split(", ")
+                                )
                             ),
                             "Filename": (
                                 lambda x: x.replace("'", "").strip("[]").split(", ")

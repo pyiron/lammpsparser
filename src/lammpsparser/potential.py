@@ -172,9 +172,9 @@ class PotentialDeduplicator:
             return {
                 "year": year,
                 "year_suffix": year_suffix,
-                "authors": PotentialDeduplicator.normalize_author(authors)
-                if authors
-                else "",
+                "authors": (
+                    PotentialDeduplicator.normalize_author(authors) if authors else ""
+                ),
                 "repo_type": "OpenKIM",
                 "ipr": None,
             }

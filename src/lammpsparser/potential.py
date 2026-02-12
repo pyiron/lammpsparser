@@ -640,8 +640,13 @@ def view_potentials(structure: Atoms, resource_path: str) -> pandas.DataFrame:
         pandas.Dataframe: Dataframe including all potential parameters.
     """
     list_of_elements = set(structure.get_chemical_symbols())
-    return LammpsPotentialFile(resource_path=resource_path).find(list_of_elements)
+    raw_df = LammpsPotentialFile(resource_path=resource_path).find(list_of_elements)
+    
+    dedup = PotentialDeduplicator(target_elements=list_of_elements, verbose=True)
+    clean_df = dedup.deduplicate(raw_df)
 
+    return clean_df
+    
 
 def convert_path_to_abs_posix(path: str) -> str:
     """

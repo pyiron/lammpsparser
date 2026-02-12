@@ -35,7 +35,7 @@ get_potential_by_name(
 
 import re
 from dataclasses import dataclass
-from typing import List, Set, Dict, Tuple, Optional
+from typing import List, Set, Dict, Tuple, Optional, Union
 from collections import defaultdict
 import pandas as pd
 
@@ -75,22 +75,43 @@ class PotentialDeduplicator:
     1. Potentials from same author+year+suffix are duplicates
     2. Within LAMMPS: prefer higher ipr
     3. Across repos: prefer LAMMPS over OpenKIM
-    4. Only keep potentials containing target_element
+    4. Only keep potentials containing ALL target_elements
     """
     
-    def __init__(self, target_element: str = 'Ni', verbose: bool = False):
+    def __init__(self, 
+                 target_elements: Union[str, List[str], Set[str]] = 'Ni', 
+                 verbose: bool = False):
         """
         Parameters
         ----------
-        target_element : str
-            Element to filter for
+        target_elements : str, list of str, or set of str
+            Element(s) to filter for. If multiple elements provided,
+            potentials must contain ALL of them.
+            Examples: 'Ni', ['Ni', 'Al'], {'Ni', 'Al', 'Cu'}
         verbose : bool
             Print deduplication details
         """
-        self.target_element = target_element
+        # Normalize to set
+        if isinstance(target_elements, str):
+            self.target_elements = {target_elements}
+        elif isinstance(target_elements, (list, tuple)):
+            self.target_elements = set(target_elements)
+        elif isinstance(target_elements, set):
+            self.target_elements = target_elements
+        else:
+            raise ValueError(f"target_elements must be str, list, or set, got {type(target_elements)}")
+        
         self.verbose = verbose
         self.last_duplicates_map = {}
         self.last_stats = {}
+    
+    @property
+    def target_elements_str(self) -> str:
+        """Human-readable string of target elements."""
+        if len(self.target_elements) == 1:
+            return list(self.target_elements)[0]
+        else:
+            return '{' + ', '.join(sorted(self.target_elements)) + '}'
         
     @staticmethod
     def normalize_author(author_str: str) -> str:
@@ -153,6 +174,10 @@ class PotentialDeduplicator:
         
         return None
     
+    def contains_target_elements(self, elements: Set[str]) -> bool:
+        """Check if elements set contains ALL target elements."""
+        return self.target_elements.issubset(elements)
+    
     def deduplicate(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Deduplicate potentials from DataFrame.
@@ -165,7 +190,7 @@ class PotentialDeduplicator:
         Returns
         -------
         deduplicated_df : DataFrame
-            Deduplicated potentials
+            Deduplicated potentials containing all target elements
         """
         
         if 'Name' not in df.columns or 'Species' not in df.columns:
@@ -188,8 +213,8 @@ class PotentialDeduplicator:
             else:
                 elements = set()
             
-            # Check if target element is present
-            if self.target_element not in elements:
+            # Check if ALL target elements are present
+            if not self.contains_target_elements(elements):
                 filtered_out_indices.append(idx)
                 continue
             
@@ -221,7 +246,8 @@ class PotentialDeduplicator:
         
         if self.verbose:
             print(f"Total potentials: {self.last_stats['total']}")
-            print(f"Filtered out (no {self.target_element}): {self.last_stats['filtered_out']}")
+            print(f"Target elements: {self.target_elements_str}")
+            print(f"Filtered out (missing target elements): {self.last_stats['filtered_out']}")
             print(f"Unparsed: {self.last_stats['unparsed']}")
             print(f"Valid for deduplication: {self.last_stats['valid']}")
         
@@ -295,6 +321,7 @@ class PotentialDeduplicator:
         Analyze potential families in the DataFrame.
         
         Returns a summary DataFrame with family counts and repo types.
+        Only includes potentials with all target elements.
         """
         families = defaultdict(lambda: {'count': 0, 'repos': set(), 'names': []})
         
@@ -302,9 +329,9 @@ class PotentialDeduplicator:
             name = row['Name']
             species = row['Species']
             
-            # Check target element
+            # Check target elements
             elements = set(species) if isinstance(species, list) else species
-            if self.target_element not in elements:
+            if not self.contains_target_elements(elements):
                 continue
             
             family_id = self.get_family_id(name)
@@ -325,7 +352,44 @@ class PotentialDeduplicator:
             })
         
         return pd.DataFrame(summary)
-
+    
+    def filter_by_elements(self, df: pd.DataFrame, 
+                          target_elements: Optional[Union[str, List[str], Set[str]]] = None) -> pd.DataFrame:
+        """
+        Filter DataFrame to only potentials containing specified elements.
+        
+        Parameters
+        ----------
+        df : DataFrame
+            Input DataFrame with 'Species' column
+        target_elements : str, list, set, or None
+            Elements to filter for. If None, uses self.target_elements
+            
+        Returns
+        -------
+        filtered_df : DataFrame
+            Filtered to potentials with all target elements
+        """
+        if target_elements is not None:
+            # Temporarily change target elements
+            if isinstance(target_elements, str):
+                target_set = {target_elements}
+            elif isinstance(target_elements, (list, tuple)):
+                target_set = set(target_elements)
+            else:
+                target_set = target_elements
+        else:
+            target_set = self.target_elements
+        
+        filtered_indices = []
+        for idx, row in df.iterrows():
+            species = row['Species']
+            elements = set(species) if isinstance(species, list) else species
+            if target_set.issubset(elements):
+                filtered_indices.append(idx)
+        
+        return df.loc[filtered_indices].copy()
+                              
 
 class PotentialAbstract:
     """

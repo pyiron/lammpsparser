@@ -94,7 +94,10 @@ def lammps_file_interface_function(
         calc_kwargs = calc_kwargs.copy()
 
     if lmp_command is None:
-        lmp_command = os.getenv("ASE_LAMMPSRUN_COMMAND", "mpiexec -n 1 --oversubscribe lmp_mpi") + " -in lmp.in"
+        lmp_command = (
+            os.getenv("ASE_LAMMPSRUN_COMMAND", "mpiexec -n 1 --oversubscribe lmp_mpi")
+            + " -in lmp.in"
+        )
 
     os.makedirs(working_directory, exist_ok=True)
     potential_lst, potential_replace, species = _get_potential(

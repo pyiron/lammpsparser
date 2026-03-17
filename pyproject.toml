@@ -5,7 +5,7 @@ requires = [
     "h5py", 
     "pandas", 
     "scipy", 
-    "hatchling==1.28.0",
+    "hatchling==1.29.0",
     "hatch-vcs==0.5.0",
 ]
 build-backend = "hatchling.build"

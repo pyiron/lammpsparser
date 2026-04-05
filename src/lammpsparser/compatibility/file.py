@@ -24,7 +24,7 @@ def lammps_file_interface_function(
     calc_mode: str = "static",
     calc_kwargs: Optional[dict] = None,
     units: str = "metal",
-    lmp_command: str = "mpiexec -n 1 --oversubscribe lmp_mpi -in lmp.in",
+    lmp_command: Optional[str] = None,
     resource_path: Optional[str] = None,
     input_control_file: Optional[dict] = None,
     write_restart_file: bool = False,
@@ -92,6 +92,12 @@ def lammps_file_interface_function(
         calc_kwargs = {}
     else:
         calc_kwargs = calc_kwargs.copy()
+
+    if lmp_command is None:
+        lmp_command = (
+            os.getenv("ASE_LAMMPSRUN_COMMAND", "mpiexec -n 1 --oversubscribe lmp_mpi")
+            + " -in lmp.in"
+        )
 
     os.makedirs(working_directory, exist_ok=True)
     potential_lst, potential_replace, species = _get_potential(

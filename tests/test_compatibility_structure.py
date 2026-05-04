@@ -34,9 +34,15 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
 
     def test_init_with_params(self):
         lsc = LammpsStructureCompatibility(
-            bond_dict={"Al": {"element_list": ["Al"], "cutoff_list": [3.0],
-                              "max_bond_list": [2], "bond_type_list": [1],
-                              "angle_type_list": [None]}},
+            bond_dict={
+                "Al": {
+                    "element_list": ["Al"],
+                    "cutoff_list": [3.0],
+                    "max_bond_list": [2],
+                    "bond_type_list": [1],
+                    "angle_type_list": [None],
+                }
+            },
             units="metal",
             atom_type="full",
         )

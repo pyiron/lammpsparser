@@ -64,9 +64,7 @@ class TestCalcMd(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = calc_md(langevin=True)
-        self.assertTrue(
-            any("Langevin" in str(warning.message) for warning in w)
-        )
+        self.assertTrue(any("Langevin" in str(warning.message) for warning in w))
         self.assertIsInstance(result, list)
 
     def test_npt_langevin(self):
@@ -210,24 +208,16 @@ class TestPressureToLammps(unittest.TestCase):
 
 class TestIsIsotropicHydrostatic(unittest.TestCase):
     def test_isotropic_shear_none(self):
-        self.assertTrue(
-            _is_isotropic_hydrostatic([1.0, 1.0, 1.0, None, None, None])
-        )
+        self.assertTrue(_is_isotropic_hydrostatic([1.0, 1.0, 1.0, None, None, None]))
 
     def test_isotropic_shear_zero(self):
-        self.assertTrue(
-            _is_isotropic_hydrostatic([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        )
+        self.assertTrue(_is_isotropic_hydrostatic([1.0, 1.0, 1.0, 0.0, 0.0, 0.0]))
 
     def test_non_isotropic(self):
-        self.assertFalse(
-            _is_isotropic_hydrostatic([1.0, 2.0, 3.0, None, None, None])
-        )
+        self.assertFalse(_is_isotropic_hydrostatic([1.0, 2.0, 3.0, None, None, None]))
 
     def test_non_isotropic_shear(self):
-        self.assertFalse(
-            _is_isotropic_hydrostatic([1.0, 1.0, 1.0, 1.0, 0.0, 0.0])
-        )
+        self.assertFalse(_is_isotropic_hydrostatic([1.0, 1.0, 1.0, 1.0, 0.0, 0.0]))
 
 
 class TestGetRotationMatrix(unittest.TestCase):
@@ -245,9 +235,7 @@ class TestGetRotationMatrix(unittest.TestCase):
 
     def test_with_structure(self):
         structure = bulk("Al", a=4.0, cubic=True)
-        rotation_matrix, _ = _get_rotation_matrix(
-            structure=structure, pressure=0.0
-        )
+        rotation_matrix, _ = _get_rotation_matrix(structure=structure, pressure=0.0)
         self.assertIsNotNone(rotation_matrix)
 
 
@@ -297,9 +285,7 @@ class TestModifyStructure(unittest.TestCase):
                 prism=mock_prism,
             )
         self.assertIs(result, structure)
-        self.assertTrue(
-            any("constraining" in str(warning.message) for warning in w)
-        )
+        self.assertTrue(any("constraining" in str(warning.message) for warning in w))
 
 
 if __name__ == "__main__":

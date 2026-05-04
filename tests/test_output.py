@@ -580,7 +580,6 @@ class TestLammpsOutput(unittest.TestCase):
         self.assertTrue("mean_bar" in generic_keys_lst)
         self.assertTrue("mean_pressures" in pressure_dict.keys())
 
-
     def test_mean_values_ortho_prism(self):
         # Use ortho prism to cover lines 311-312 (mean_pressures rotation with ortho cell)
         structure = bulk("Al", a=4.0, cubic=True)
@@ -594,6 +593,7 @@ class TestLammpsOutput(unittest.TestCase):
     def test_parse_output_with_computes(self):
         # Cover line 95: computes in dump (mean_dump/dump.out has c_test column)
         import warnings
+
         structure = bulk("Al", a=3.52)
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
@@ -623,6 +623,7 @@ class TestLammpsOutput(unittest.TestCase):
         # Cover line 114: column in log that is not in generic_keys_lst goes to hdf_lammps
         import tempfile
         import warnings
+
         structure = bulk("Al", a=4.0, cubic=True)
         log_content = (
             "LAMMPS log\n"
@@ -639,6 +640,7 @@ class TestLammpsOutput(unittest.TestCase):
                 f.write(log_content)
             # Copy dump.out from full_job into tmpdir
             import shutil
+
             dump_src = os.path.join(self.static_folder, "full_job", "dump.out")
             shutil.copy(dump_src, os.path.join(tmpdir, "dump.out"))
 

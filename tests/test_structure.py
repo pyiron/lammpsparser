@@ -237,11 +237,13 @@ class TestLammpsStructure(unittest.TestCase):
     def test_unfolding_prism_folding_edge_cases(self):
         # Create a cell with a large xy component to trigger folding branches
         a = 3.52
-        cell = np.array([
-            [a, 0.0, 0.0],
-            [a * 0.6, a, 0.0],
-            [0.0, a * 0.6, a],
-        ])
+        cell = np.array(
+            [
+                [a, 0.0, 0.0],
+                [a * 0.6, a, 0.0],
+                [0.0, a * 0.6, a],
+            ]
+        )
         up = UnfoldingPrism(cell=cell, pbc=(True, True, True))
         self.assertIsNotNone(up)
 

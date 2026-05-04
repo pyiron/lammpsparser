@@ -284,7 +284,6 @@ class TestModifyStructure(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_non_diagonal_prism_attr_error_warns(self):
-        import warnings
         from unittest.mock import MagicMock
 
         structure = bulk("Al", a=4.0, cubic=True)

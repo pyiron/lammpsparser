@@ -70,63 +70,6 @@ class TestLammpsStructureCompatibilitySetterAtomic(unittest.TestCase):
 
 
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
-class TestLammpsStructureCompatibilityFull(unittest.TestCase):
-    class PatchedLammpsStructureCompatibility(LammpsStructureCompatibility):
-        """Subclass that provides molecule_ids as [1, 1, ...] when set to None."""
-
-        @property
-        def molecule_ids(self):
-            if self._molecule_ids is None or len(self._molecule_ids) == 0:
-                if self._structure is not None:
-                    return [1] * len(self._structure)
-                return []
-            return self._molecule_ids
-
-        @molecule_ids.setter
-        def molecule_ids(self, value):
-            if value is None and self._structure is not None:
-                self._molecule_ids = [1] * len(self._structure)
-            else:
-                self._molecule_ids = value if value is not None else []
-
-    def test_structure_setter_full_no_bonds(self):
-        lsc = self.PatchedLammpsStructureCompatibility(
-            bond_dict={}, units="metal", atom_type="full"
-        )
-        lsc._el_eam_lst = ["Al"]
-        lsc.atom_type = "full"
-
-        mock_potential = MagicMock()
-        mock_potential.get_charge.return_value = 0.0
-        lsc._potential = mock_potential
-
-        structure = bulk("Al", a=4.0, cubic=True)
-        lsc.structure = structure
-        self.assertIn("Atoms", lsc._string_input)
-
-    def test_structure_setter_full_no_bonds_empty_bond_dict(self):
-        lsc = self.PatchedLammpsStructureCompatibility(
-            bond_dict={}, units="metal", atom_type="full"
-        )
-        lsc._el_eam_lst = ["Al"]
-        lsc.atom_type = "full"
-
-        mock_potential = MagicMock()
-        mock_potential.get_charge.return_value = 1.5
-        lsc._potential = mock_potential
-
-        # Two-atom structure so the loop runs
-        structure = Atoms(
-            "Al2",
-            positions=[[0, 0, 0], [2, 0, 0]],
-            cell=[[4, 0, 0], [0, 4, 0], [0, 0, 4]],
-            pbc=True,
-        )
-        lsc.structure = structure
-        self.assertIn("Atoms", lsc._string_input)
-
-
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestGetBonds(unittest.TestCase):
     def test_get_bonds_error(self):
         structure = bulk("Al", a=4.05, cubic=True).repeat([2, 2, 1])

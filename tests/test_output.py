@@ -12,6 +12,13 @@ from lammpsparser.output_raw import to_amat
 from lammpsparser.structure import UnfoldingPrism
 
 
+try:
+    import h5py
+    skip_h5py_test = False
+except ImportError:
+    skip_h5py_test = True
+
+
 class TestLammpsOutput(unittest.TestCase):
     def setUp(self):
         self.static_folder = os.path.abspath(os.path.join(__file__, "..", "static"))
@@ -332,6 +339,7 @@ class TestLammpsOutput(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(skip_h5py_test, "h5py not available")
     def test_full_job_output_h5(self):
         test_folder = os.path.join(self.static_folder, "full_job_h5")
         structure_ni = bulk("Ni", cubic=True)

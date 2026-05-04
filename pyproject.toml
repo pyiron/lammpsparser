@@ -48,6 +48,7 @@ Repository = "https://github.com/pyiron/lammpsparser"
 
 [project.optional-dependencies]
 h5md = ["h5py==3.16.0"]
+compatibility = ["structuretoolkit==0.0.42"]
 
 [tool.hatch.build]
 include = [

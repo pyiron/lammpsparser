@@ -4,7 +4,11 @@ from unittest.mock import MagicMock
 from ase.build import bulk
 from ase.atoms import Atoms
 
-from lammpsparser.compatibility.structure import LammpsStructureCompatibility, get_bonds
+try:
+    from lammpsparser.compatibility.structure import LammpsStructureCompatibility, get_bonds
+    skip_structuretoolkit_test = False
+except ImportError:
+    skip_structuretoolkit_test = True
 
 
 class _PatchedLammpsStructureCompatibility(LammpsStructureCompatibility):
@@ -26,6 +30,7 @@ class _PatchedLammpsStructureCompatibility(LammpsStructureCompatibility):
             self._molecule_ids = value if value is not None else []
 
 
+@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilityInit(unittest.TestCase):
     def test_init_defaults(self):
         lsc = LammpsStructureCompatibility()
@@ -56,6 +61,7 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
         self.assertIs(lsc.structure, structure)
 
 
+@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilitySetterAtomic(unittest.TestCase):
     def test_structure_setter_atomic(self):
         lsc = LammpsStructureCompatibility(atom_type="atomic")
@@ -78,6 +84,7 @@ class TestLammpsStructureCompatibilitySetterAtomic(unittest.TestCase):
         self.assertIn("1.500000", lsc._string_input)
 
 
+@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilityFull(unittest.TestCase):
     def test_structure_setter_full_no_bonds(self):
         lsc = _PatchedLammpsStructureCompatibility(
@@ -116,6 +123,7 @@ class TestLammpsStructureCompatibilityFull(unittest.TestCase):
         self.assertIn("Atoms", lsc._string_input)
 
 
+@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestGetBonds(unittest.TestCase):
     def test_get_bonds_error(self):
         structure = bulk("Al", a=4.05, cubic=True).repeat([2, 2, 1])

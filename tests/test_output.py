@@ -14,6 +14,7 @@ from lammpsparser.structure import UnfoldingPrism
 
 try:
     import h5py
+
     skip_h5py_test = False
 except ImportError:
     skip_h5py_test = True

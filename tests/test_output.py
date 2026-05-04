@@ -12,6 +12,14 @@ from lammpsparser.output_raw import to_amat
 from lammpsparser.structure import UnfoldingPrism
 
 
+try:
+    import h5py
+
+    skip_h5py_test = False
+except ImportError:
+    skip_h5py_test = True
+
+
 class TestLammpsOutput(unittest.TestCase):
     def setUp(self):
         self.static_folder = os.path.abspath(os.path.join(__file__, "..", "static"))
@@ -332,6 +340,7 @@ class TestLammpsOutput(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(skip_h5py_test, "h5py not available")
     def test_full_job_output_h5(self):
         test_folder = os.path.join(self.static_folder, "full_job_h5")
         structure_ni = bulk("Ni", cubic=True)
@@ -579,6 +588,81 @@ class TestLammpsOutput(unittest.TestCase):
         self.assertTrue("mean_foo" in generic_keys_lst)
         self.assertTrue("mean_bar" in generic_keys_lst)
         self.assertTrue("mean_pressures" in pressure_dict.keys())
+
+    def test_mean_values_ortho_prism(self):
+        # Use ortho prism to cover lines 311-312 (mean_pressures rotation with ortho cell)
+        structure = bulk("Al", a=4.0, cubic=True)
+        ortho_prism = UnfoldingPrism(cell=structure.cell)
+        generic_keys_lst, pressure_dict, df = _collect_output_log(
+            file_name=os.path.join(self.static_folder, "mean_values", "log.lammps"),
+            prism=ortho_prism,
+        )
+        self.assertTrue("mean_pressures" in pressure_dict.keys())
+
+    def test_parse_output_with_computes(self):
+        # Cover line 95: computes in dump (mean_dump/dump.out has c_test column)
+        import warnings
+
+        structure = bulk("Al", a=3.52)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            output = parse_lammps_output_files(
+                working_directory=os.path.join(self.static_folder, "mean_dump"),
+                structure=structure,
+                potential_elements=["Al"],
+                units="metal",
+            )
+        self.assertIn("test", output["generic"])
+
+    def test_parse_dump_h5md_non_ortho_raises(self):
+        # Cover line 135: h5md file with non-ortho prism raises RuntimeError
+        cell = np.array([[1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        non_ortho_prism = UnfoldingPrism(cell=cell)
+        h5_file = os.path.join(self.static_folder, "full_job_h5", "dump.h5")
+        with self.assertRaises(RuntimeError):
+            _parse_dump(
+                dump_h5_full_file_name=h5_file,
+                dump_out_full_file_name="",
+                prism=non_ortho_prism,
+                structure=bulk("Ni", cubic=True),
+                potential_elements=["Ni"],
+            )
+
+    def test_parse_output_extra_log_column(self):
+        # Cover line 114: column in log that is not in generic_keys_lst goes to hdf_lammps
+        import tempfile
+        import warnings
+
+        structure = bulk("Al", a=4.0, cubic=True)
+        log_content = (
+            "LAMMPS log\n"
+            "   Step          Temp          KinEng         PotEng         TotEng"
+            "          Pxx            Pxy            Pxz            Pyy            Pyz"
+            "            Pzz           Volume\n"
+            "         0   0.0   0.0   -17.8   -17.8   0.0   0.0   0.0   0.0   0.0   0.0   43.6\n"
+            "Loop time of 0.0 on 1 procs for 0 steps with 4 atoms\n"
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Write log file with extra "KinEng" column
+            log_path = os.path.join(tmpdir, "log.lammps")
+            with open(log_path, "w") as f:
+                f.write(log_content)
+            # Copy dump.out from full_job into tmpdir
+            import shutil
+
+            dump_src = os.path.join(self.static_folder, "full_job", "dump.out")
+            shutil.copy(dump_src, os.path.join(tmpdir, "dump.out"))
+
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                output = parse_lammps_output_files(
+                    working_directory=tmpdir,
+                    structure=structure,
+                    potential_elements=["Al"],
+                    units="metal",
+                )
+            # "KinEng" column is not a generic key, so it goes to hdf_lammps
+            self.assertIn("KinEng", output["lammps"])
 
 
 if __name__ == "__main__":

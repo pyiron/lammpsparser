@@ -227,6 +227,26 @@ class TestLammpsStructure(unittest.TestCase):
         up = UnfoldingPrism(cell=cell)
         self.assertFalse(np.all(np.isclose(up.A, cell)))
 
+    def test_unfolding_prism_bool_pbc(self):
+        structure = bulk("Al", a=4.05)
+        up = UnfoldingPrism(cell=structure.cell, pbc=True)
+        self.assertIsNotNone(up)
+        up_false = UnfoldingPrism(cell=structure.cell, pbc=False)
+        self.assertIsNotNone(up_false)
+
+    def test_unfolding_prism_folding_edge_cases(self):
+        # Create a cell with a large xy component to trigger folding branches
+        a = 3.52
+        cell = np.array(
+            [
+                [a, 0.0, 0.0],
+                [a * 0.6, a, 0.0],
+                [0.0, a * 0.6, a],
+            ]
+        )
+        up = UnfoldingPrism(cell=cell, pbc=(True, True, True))
+        self.assertIsNotNone(up)
+
     def test_structure_charge(self):
         atoms = Atoms("Fe1", positions=np.zeros((1, 3)), cell=np.eye(3))
         atoms.set_initial_charges(charges=np.ones(len(atoms)) * 2.0)

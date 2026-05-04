@@ -5,7 +5,11 @@ from ase.build import bulk
 from ase.atoms import Atoms
 
 try:
-    from lammpsparser.compatibility.structure import LammpsStructureCompatibility, get_bonds
+    from lammpsparser.compatibility.structure import (
+        LammpsStructureCompatibility,
+        get_bonds,
+    )
+
     skip_structuretoolkit_test = False
 except ImportError:
     skip_structuretoolkit_test = True

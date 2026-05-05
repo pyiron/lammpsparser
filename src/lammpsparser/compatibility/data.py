@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from ase.atoms import Atoms
 import numpy as np
+from ase.atoms import Atoms
 
 
 @dataclass

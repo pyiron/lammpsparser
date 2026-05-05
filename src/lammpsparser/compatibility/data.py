@@ -9,6 +9,7 @@ from ase.atoms import Atoms
 class CalcMDInput:
     temperature: Optional[Union[float, list]] = None
     pressure: Optional[Union[float, list, np.ndarray]] = None
+    n_ionic_steps: int = 100000
     time_step: float = 1.0
     n_print: int = 100
     temperature_damping_timescale: float = 100.0
@@ -20,12 +21,10 @@ class CalcMDInput:
     delta_temp: Optional[float] = None
     delta_press: Optional[float] = None
     rotation_matrix: Optional[Union[list, np.ndarray]] = None
-    units: str = "metal"
 
 
 @dataclass
 class CalcMinimizeInput:
-    structure: Atoms
     ionic_energy_tolerance: float = 0.0
     ionic_force_tolerance: float = 1e-4
     max_iter: int = 100000
@@ -33,4 +32,3 @@ class CalcMinimizeInput:
     n_print: int = 100
     style: str = "cg"
     rotation_matrix: Optional[Union[list, np.ndarray]] = None
-    units: str = "metal"

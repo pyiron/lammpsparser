@@ -276,11 +276,7 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nvt_langevin(self):
-        md_input = CalcMDInput(
-            temperature=500.0,
-            n_print=100,
-            langevin=True
-        )
+        md_input = CalcMDInput(temperature=500.0, n_print=100, langevin=True)
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
@@ -321,10 +317,7 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nve(self):
-        md_input = CalcMDInput(
-            n_print=100,
-            langevin=True
-        )
+        md_input = CalcMDInput(n_print=100, langevin=True)
         potential = [
             "# Bouhadja et al., J. Chem. Phys. 138, 224510 (2013) \n",
             "units metal\n",

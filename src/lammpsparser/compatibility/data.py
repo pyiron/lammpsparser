@@ -11,7 +11,7 @@ class CalcMDInput:
     pressure: Optional[Union[float, list, np.ndarray]] = None
     n_ionic_steps: int = 1
     time_step: float = 1.0
-    n_print: Optional[int] = 1
+    n_print: int = 100
     temperature_damping_timescale: float = 100.0
     pressure_damping_timescale: float = 1000.0
     seed: int = 80996
@@ -29,6 +29,6 @@ class CalcMinimizeInput:
     ionic_force_tolerance: float = 1e-4
     max_iter: int = 100000
     pressure: Optional[Union[float, list, np.ndarray]] = None
-    n_print: Optional[int] = 1
+    n_print: int = 100
     style: str = "cg"
     rotation_matrix: Optional[Union[list, np.ndarray]] = None

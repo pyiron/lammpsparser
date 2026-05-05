@@ -9,7 +9,7 @@ from ase.atoms import Atoms
 class CalcMDInput:
     temperature: Optional[Union[float, list]] = None
     pressure: Optional[Union[float, list, np.ndarray]] = None
-    n_ionic_steps: int = 100000
+    n_ionic_steps: int = 1
     time_step: float = 1.0
     n_print: int = 100
     temperature_damping_timescale: float = 100.0

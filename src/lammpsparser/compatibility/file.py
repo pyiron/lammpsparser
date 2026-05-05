@@ -71,7 +71,7 @@ def lammps_file_interface_function(
                    "temperature_mc", "window_size", "window_moves", "temperature", "pressure", "n_ionic_steps",
                    "time_step", "n_print", "temperature_damping_timescale", "pressure_damping_timescale", "seed",
                    "initial_temperature", "langevin", "job_name", "rotation_matrix"
-        calc_dataclass (CalcMDInput or CalcMinimizeInput): dataclass containing the parameters for the calculation, 
+        calc_dataclass (CalcMDInput or CalcMinimizeInput): dataclass containing the parameters for the calculation,
                                                            if calc_dataclass is provided
         cutoff_radius (float): cut-off radius for the interatomic potential
         units (str): Units for LAMMPS
@@ -97,7 +97,7 @@ def lammps_file_interface_function(
         if isinstance(calc_dataclass, CalcMDInput):
             calc_mode = "md"
             calc_kwargs = asdict(calc_dataclass)
-            
+
         elif isinstance(calc_dataclass, CalcMinimizeInput):
             calc_mode = "minimize"
             calc_kwargs = asdict(calc_dataclass)

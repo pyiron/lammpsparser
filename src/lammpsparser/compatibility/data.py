@@ -29,6 +29,6 @@ class CalcMinimizeInput:
     ionic_force_tolerance: float = 1e-4
     max_iter: int = 100000
     pressure: Optional[Union[float, list, np.ndarray]] = None
-    n_print: int = 100
+    n_print: int = 1
     style: str = "cg"
     rotation_matrix: Optional[Union[list, np.ndarray]] = None

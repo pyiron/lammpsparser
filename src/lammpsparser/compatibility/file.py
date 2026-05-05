@@ -1,7 +1,8 @@
 import os
 import shutil
 import subprocess
-from typing import Optional
+from dataclasses import asdict
+from typing import Optional, Union
 
 import pandas
 from ase.atoms import Atoms
@@ -12,6 +13,7 @@ from lammpsparser.compatibility.calculate import (
     calc_static,
 )
 from lammpsparser.compatibility.constraints import set_selective_dynamics
+from lammpsparser.compatibility.data import CalcMDInput, CalcMinimizeInput
 from lammpsparser.output import parse_lammps_output
 from lammpsparser.potential import get_potential_by_name
 from lammpsparser.structure import write_lammps_datafile
@@ -23,6 +25,7 @@ def lammps_file_interface_function(
     potential: str,
     calc_mode: str = "static",
     calc_kwargs: Optional[dict] = None,
+    calc_dataclass: Optional[Union[CalcMDInput, CalcMinimizeInput]] = None,
     units: str = "metal",
     lmp_command: Optional[str] = None,
     resource_path: Optional[str] = None,
@@ -68,6 +71,8 @@ def lammps_file_interface_function(
                    "temperature_mc", "window_size", "window_moves", "temperature", "pressure", "n_ionic_steps",
                    "time_step", "n_print", "temperature_damping_timescale", "pressure_damping_timescale", "seed",
                    "initial_temperature", "langevin", "job_name", "rotation_matrix"
+        calc_dataclass (CalcMDInput or CalcMinimizeInput): dataclass containing the parameters for the calculation, 
+                                                           if calc_dataclass is provided
         cutoff_radius (float): cut-off radius for the interatomic potential
         units (str): Units for LAMMPS
         bonds_kwargs (dict): key-word arguments to create atomistic bonds:
@@ -88,6 +93,18 @@ def lammps_file_interface_function(
         str, dict, bool: Tuple consisting of the shell output (str), the parsed output (dict) and a boolean flag if
                          the execution raised an accepted error.
     """
+    if calc_dataclass is not None:
+        if isinstance(calc_dataclass, CalcMDInput):
+            calc_mode = "md"
+            calc_kwargs = asdict(calc_dataclass)
+            
+        elif isinstance(calc_dataclass, CalcMinimizeInput):
+            calc_mode = "minimize"
+            calc_kwargs = asdict(calc_dataclass)
+        else:
+            raise TypeError(
+                "calc_dataclass must be an instance of either CalcMDInput or CalcMinimizeInput"
+            )
     if calc_kwargs is None:
         calc_kwargs = {}
     else:

@@ -8,6 +8,7 @@ from lammpsparser.compatibility.file import (
     _get_potential,
 )
 from lammpsparser.potential import get_potential_by_name
+from lammpsparser.compatibility.data import CalcMDInput, CalcMinimizeInput
 
 
 class TestCompatibilityFile(unittest.TestCase):
@@ -88,12 +89,12 @@ class TestCompatibilityFile(unittest.TestCase):
             )
 
     def test_calc_md_npt(self):
-        calc_kwargs = {
-            "temperature": 500.0,
-            "pressure": 0.0,
-            "n_ionic_steps": 1000,
-            "n_print": 100,
-        }
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=1000,
+            n_print=100,
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
@@ -101,8 +102,7 @@ class TestCompatibilityFile(unittest.TestCase):
                 potential_name=self.potential,
                 resource_path=os.path.join(self.static_path, "potential"),
             ),
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -138,13 +138,13 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_npt_langevin(self):
-        calc_kwargs = {
-            "temperature": 500.0,
-            "pressure": 0.0,
-            "n_ionic_steps": 1000,
-            "n_print": 100,
-            "langevin": True,
-        }
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=1000,
+            n_print=100,
+            langevin=True,
+        )
         potential = get_potential_by_name(
             potential_name=self.potential,
             resource_path=os.path.join(self.static_path, "potential"),
@@ -153,8 +153,7 @@ class TestCompatibilityFile(unittest.TestCase):
             working_directory=self.working_dir,
             structure=self.structure,
             potential=pandas.DataFrame({k: [potential[k]] for k in potential.keys()}),
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -190,13 +189,15 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nvt(self):
-        calc_kwargs = {"temperature": 500.0, "n_print": 100}
+        md_input = CalcMDInput(
+            temperature=500.0,
+            n_print=100,
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -231,13 +232,15 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nvt_restart(self):
-        calc_kwargs = {"temperature": 500.0, "n_print": 100}
+        md_input = CalcMDInput(
+            temperature=500.0,
+            n_print=100,
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -273,13 +276,12 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nvt_langevin(self):
-        calc_kwargs = {"temperature": 500.0, "n_print": 100, "langevin": True}
+        md_input = CalcMDInput(temperature=500.0, n_print=100, langevin=True)
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -315,7 +317,7 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_md_nve(self):
-        calc_kwargs = {"n_print": 100, "langevin": True}
+        md_input = CalcMDInput(n_print=100, langevin=True)
         potential = [
             "# Bouhadja et al., J. Chem. Phys. 138, 224510 (2013) \n",
             "units metal\n",
@@ -353,8 +355,7 @@ class TestCompatibilityFile(unittest.TestCase):
             potential=pandas.DataFrame(
                 {"Config": [potential], "Species": [element_lst]}
             ),
-            calc_mode="md",
-            calc_kwargs=calc_kwargs,
+            calc_dataclass=md_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -448,12 +449,15 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_minimize(self):
+        minimize_input = CalcMinimizeInput(
+            n_print=100,
+            max_iter=20,
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="minimize",
-            calc_kwargs={"n_print": 100, "max_iter": 20},
+            calc_dataclass=minimize_input,
             units=self.units,
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
@@ -486,13 +490,15 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_minimize_pressure(self):
+        minimize_input = CalcMinimizeInput(
+            pressure=0.0,
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="minimize",
+            calc_dataclass=minimize_input,
             units=self.units,
-            calc_kwargs={"pressure": 0.0},
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
             + "/* .",
@@ -513,7 +519,7 @@ class TestCompatibilityFile(unittest.TestCase):
             "variable dumptime equal 1 \n",
             "dump 1 all custom ${dumptime} dump.out id type xsu ysu zsu fx fy fz vx vy vz\n",
             'dump_modify 1 sort id format line "%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"\n',
-            "variable thermotime equal 100 \n",
+            "variable thermotime equal 1 \n",
             "thermo_style custom step temp pe etotal pxx pxy pxz pyy pyz pzz vol\n",
             "thermo_modify format float %20.15g\n",
             "thermo ${thermotime}\n",
@@ -525,13 +531,15 @@ class TestCompatibilityFile(unittest.TestCase):
             self.assertIn(line, content)
 
     def test_calc_minimize_pressure_3d(self):
+        minimize_input = CalcMinimizeInput(
+            pressure=[0.0, 0.0, 0.0],
+        )
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,
             structure=self.structure,
             potential=self.potential,
-            calc_mode="minimize",
+            calc_dataclass=minimize_input,
             units=self.units,
-            calc_kwargs={"pressure": [0.0, 0.0, 0.0]},
             lmp_command="cp "
             + str(os.path.join(self.static_path, "compatibility_output"))
             + "/* .",
@@ -552,7 +560,7 @@ class TestCompatibilityFile(unittest.TestCase):
             "variable dumptime equal 1 \n",
             "dump 1 all custom ${dumptime} dump.out id type xsu ysu zsu fx fy fz vx vy vz\n",
             'dump_modify 1 sort id format line "%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"\n',
-            "variable thermotime equal 100 \n",
+            "variable thermotime equal 1 \n",
             "thermo_style custom step temp pe etotal pxx pxy pxz pyy pyz pzz vol\n",
             "thermo_modify format float %20.15g\n",
             "thermo ${thermotime}\n",

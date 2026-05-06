@@ -80,7 +80,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_structure_setter_bond(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
@@ -88,7 +88,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_structure_setter_bond_with_cutoff(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         lsc.cutoff_radius = 3.0
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
@@ -97,7 +97,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_structure_setter_bond_2d(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = Atoms(
             "Al2", positions=[[0, 0, 0], [1, 1, 0]], cell=np.eye(3) * 2, pbc=True
         )
@@ -113,7 +113,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_structure_setter_full(self):
         lsc = LammpsStructureCompatibility(atom_type="full")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
@@ -134,7 +134,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
                 }
             },
         )
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
@@ -143,7 +143,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_structure_setter_full_with_potential(self):
         lsc = LammpsStructureCompatibility(atom_type="full")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         potential = MagicMock()
         potential.get_charge.return_value = 0.5
         lsc.potential = potential
@@ -153,7 +153,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
 
     def test_dimension_error(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
         # Manually bypass ASE protection to test the 1D branch in lammpsparser
         structure.arrays["positions"] = np.array([[0]], dtype=float)

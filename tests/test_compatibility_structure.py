@@ -60,15 +60,17 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
 class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
     def test_structure_setter_atomic(self):
         lsc = LammpsStructureCompatibility(atom_type="atomic")
-        lsc.el_eam_lst = ["Al"]
+        lsc._el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
+        # atom_type attribute defaults to None, so else branch (atomic) is used
         lsc.structure = structure
         self.assertIs(lsc._structure, structure)
         self.assertIn("Atoms", lsc._string_input)
 
     def test_structure_setter_charge(self):
         lsc = LammpsStructureCompatibility(atom_type="charge")
-        lsc.el_eam_lst = ["Fe"]
+        lsc._el_eam_lst = ["Fe"]
+        lsc.atom_type = "charge"
         structure = Atoms("Fe1", positions=np.zeros((1, 3)), cell=np.eye(3))
         structure.set_initial_charges(np.ones(1) * 1.5)
         lsc.structure = structure

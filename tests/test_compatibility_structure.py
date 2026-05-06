@@ -37,28 +37,6 @@ if not skip_structuretoolkit_test:
             pass  # ignore – molecule_ids is derived from _structure
 
 
-def _patch_np_in1d():
-    """Context manager: shim np.in1d -> np.isin for NumPy 2+ compatibility.
-
-    np.in1d was removed in NumPy 2.  Production code in structure_full uses it,
-    so we add a temporary shim on the module's numpy reference for the duration
-    of tests that exercise that code path.
-    """
-    from contextlib import contextmanager
-
-    @contextmanager
-    def _ctx():
-        if not skip_structuretoolkit_test:
-            compat_struct.np.in1d = np.isin
-        try:
-            yield
-        finally:
-            if not skip_structuretoolkit_test and hasattr(compat_struct.np, "in1d"):
-                del compat_struct.np.in1d
-
-    return _ctx()
-
-
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilityInit(unittest.TestCase):
     def test_init_defaults(self):
@@ -248,11 +226,7 @@ class TestStructureFull(unittest.TestCase):
         lsc._el_eam_lst = ["Fe"]
         lsc._structure = structure
         lsc._potential = self._make_mock_potential(charge=0.0)
-
-        # np.in1d was removed in NumPy 2; provide a shim for the duration of
-        # this test so the production code path remains exercised.
-        with _patch_np_in1d():
-            result = lsc.structure_full()
+        result = lsc.structure_full()
 
         self.assertIn("Atoms", result)
         self.assertIn("Bonds", result)
@@ -273,9 +247,7 @@ class TestStructureFull(unittest.TestCase):
         lsc._el_eam_lst = ["Fe"]
         lsc._structure = structure
         lsc._potential = self._make_mock_potential(charge=0.0)
-
-        with _patch_np_in1d():
-            result = lsc.structure_full()
+        result = lsc.structure_full()
 
         self.assertIn("Atoms", result)
         self.assertIn("Bonds", result)

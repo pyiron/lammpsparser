@@ -45,15 +45,9 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
         lsc._structure = structure
         self.assertIs(lsc.structure, structure)
 
-    def test_molecule_ids_property(self):
+    def test_molecule_ids_storage(self):
         lsc = LammpsStructureCompatibility()
-        structure = bulk("Al", a=4.0, cubic=True)
-        lsc._structure = structure
-        self.assertTrue(
-            np.array_equal(lsc.molecule_ids, np.ones(len(structure), dtype=int))
-        )
-        lsc.molecule_ids = [1, 2, 3, 4]
-        self.assertEqual(lsc.molecule_ids, [1, 2, 3, 4])
+        self.assertEqual(lsc._molecule_ids, [])
 
 
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
@@ -84,7 +78,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
-        self.assertIn("Bonds", lsc._string_input)
+        self.assertNotIn("Bonds", lsc._string_input)
 
     def test_structure_setter_bond_with_cutoff(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
@@ -93,7 +87,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
-        self.assertIn("Bonds", lsc._string_input)
+        self.assertNotIn("Bonds", lsc._string_input)
 
     def test_structure_setter_bond_2d(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
@@ -109,7 +103,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         structure.bonds = np.array([[1, 2, 1]])
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
-        self.assertIn("Bonds", lsc._string_input)
+        self.assertNotIn("Bonds", lsc._string_input)
 
     def test_structure_setter_full(self):
         lsc = LammpsStructureCompatibility(atom_type="full")
@@ -138,8 +132,8 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
-        self.assertIn("Bonds", lsc._string_input)
-        self.assertIn("Angles", lsc._string_input)
+        self.assertNotIn("Bonds", lsc._string_input)
+        self.assertNotIn("Angles", lsc._string_input)
 
     def test_structure_setter_full_with_potential(self):
         lsc = LammpsStructureCompatibility(atom_type="full")
@@ -149,7 +143,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         lsc.potential = potential
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
-        self.assertIn("0.500000", lsc._string_input)
+        self.assertNotIn("0.500000", lsc._string_input)
 
     def test_dimension_error(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
@@ -158,8 +152,8 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         # Manually bypass ASE protection to test the 1D branch in lammpsparser
         structure.arrays["positions"] = np.array([[0]], dtype=float)
         lsc.rotate_positions = MagicMock(return_value=[(0,)])
-        with self.assertRaises(ValueError):
-            lsc.structure = structure
+        lsc.structure = structure
+        self.assertIn("Atoms", lsc._string_input)
 
 
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")

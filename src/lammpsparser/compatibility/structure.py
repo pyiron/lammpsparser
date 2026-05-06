@@ -28,16 +28,6 @@ class LammpsStructureCompatibility(LammpsStructure):
         """
         return self._structure
 
-    @property
-    def molecule_ids(self):
-        if self._molecule_ids is None or len(self._molecule_ids) == 0:
-            return np.ones(len(self.structure), dtype=int)
-        return self._molecule_ids
-
-    @molecule_ids.setter
-    def molecule_ids(self, val):
-        self._molecule_ids = val
-
     @structure.setter
     def structure(self, structure):
         """
@@ -49,11 +39,11 @@ class LammpsStructureCompatibility(LammpsStructure):
 
         """
         self._structure = structure
-        if self._atom_type == "full":
+        if self.atom_type == "full":
             input_str = self.structure_full()
-        elif self._atom_type == "bond":
+        elif self.atom_type == "bond":
             input_str = self.structure_bond()
-        elif self._atom_type == "charge":
+        elif self.atom_type == "charge":
             input_str = self.structure_charge()
         else:  # self.atom_type == 'atomic'
             input_str = self.structure_atomic()
@@ -67,6 +57,7 @@ class LammpsStructureCompatibility(LammpsStructure):
 
         """
         species_lammps_id_dict = self.get_lammps_id_dict(self.el_eam_lst)
+        self.molecule_ids = None
         # analyze structure to get molecule_ids, bonds, angles etc
         coords = self.rotate_positions(self._structure)
 
@@ -124,7 +115,7 @@ class LammpsStructureCompatibility(LammpsStructure):
                 bond_type[i, j] = count
                 bond_type[j, i] = count
 
-        if getattr(self.structure, "bonds", None) is None:
+        if self.structure.bonds is None:
             if self.cutoff_radius is None:
                 bonds_lst = get_bonds(structure=self.structure, max_shells=1)
             else:
@@ -174,25 +165,20 @@ class LammpsStructureCompatibility(LammpsStructure):
 
         """
         species_lammps_id_dict = self.get_lammps_id_dict(self.el_eam_lst)
+        self.molecule_ids = None
         coords = self.rotate_positions(self._structure)
 
         # extract electric charges from potential file
-        if self.potential is not None:
-            q_dict = {
-                species_name: self.potential.get_charge(species_name)
-                for species_name in set(self.structure.get_chemical_symbols())
-            }
-        else:
-            q_dict = {
-                species_name: 0.0
-                for species_name in set(self.structure.get_chemical_symbols())
-            }
+        q_dict = {
+            species_name: self.potential.get_charge(species_name)
+            for species_name in set(self.structure.get_chemical_symbols())
+        }
 
         bonds_lst, angles_lst = [], []
         bond_type_lst, angle_type_lst = [], []
         # Using a cutoff distance to draw the bonds instead of the number of neighbors
         # Only if any bonds are defined
-        if self._bond_dict is not None and len(self._bond_dict.keys()) > 0:
+        if len(self._bond_dict.keys()) > 0:
             cutoff_list = list()
             for val in self._bond_dict.values():
                 cutoff_list.append(np.max(val["cutoff_list"]))
@@ -343,6 +329,7 @@ def get_bonds(
         tolerance=2,
         id_list=None,
         width_buffer=1.2,
+        allow_ragged=None,
         mode="ragged",
         norm_order=2,
     )

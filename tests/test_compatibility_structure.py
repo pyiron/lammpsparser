@@ -49,7 +49,9 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
         lsc = LammpsStructureCompatibility()
         structure = bulk("Al", a=4.0, cubic=True)
         lsc._structure = structure
-        self.assertTrue(np.array_equal(lsc.molecule_ids, np.ones(len(structure), dtype=int)))
+        self.assertTrue(
+            np.array_equal(lsc.molecule_ids, np.ones(len(structure), dtype=int))
+        )
         lsc.molecule_ids = [1, 2, 3, 4]
         self.assertEqual(lsc.molecule_ids, [1, 2, 3, 4])
 
@@ -94,10 +96,12 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
     def test_structure_setter_bond_2d(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
         lsc.el_eam_lst = ["Al"]
-        structure = Atoms("Al2", positions=[[0, 0, 0], [1, 1, 0]], cell=np.eye(3)*2, pbc=True)
+        structure = Atoms(
+            "Al2", positions=[[0, 0, 0], [1, 1, 0]], cell=np.eye(3) * 2, pbc=True
+        )
         # Manually bypass ASE protection to test the 2D branch in lammpsparser
         # and mock rotate_positions to avoid shape mismatch in UnfoldingPrism
-        structure.arrays['positions'] = np.array([[0, 0], [1, 1]], dtype=float)
+        structure.arrays["positions"] = np.array([[0, 0], [1, 1]], dtype=float)
         lsc.rotate_positions = MagicMock(return_value=[(0, 0), (1, 1)])
         # Set bonds manually to avoid get_neighbors error
         structure.bonds = np.array([[1, 2, 1]])
@@ -111,7 +115,9 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         structure = bulk("Al", a=4.0, cubic=True)
         lsc.structure = structure
         self.assertIn("Atoms", lsc._string_input)
-        self.assertNotIn("Bonds", lsc._string_input) # No bonds by default if bond_dict is None
+        self.assertNotIn(
+            "Bonds", lsc._string_input
+        )  # No bonds by default if bond_dict is None
 
     def test_structure_setter_full_with_bond_dict(self):
         lsc = LammpsStructureCompatibility(
@@ -124,7 +130,7 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
                     "bond_type_list": [1],
                     "angle_type_list": [1],
                 }
-            }
+            },
         )
         lsc.el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
@@ -148,10 +154,11 @@ class TestLammpsStructureCompatibilitySetter(unittest.TestCase):
         lsc.el_eam_lst = ["Al"]
         structure = bulk("Al", a=4.0, cubic=True)
         # Manually bypass ASE protection to test the 1D branch in lammpsparser
-        structure.arrays['positions'] = np.array([[0]], dtype=float)
+        structure.arrays["positions"] = np.array([[0]], dtype=float)
         lsc.rotate_positions = MagicMock(return_value=[(0,)])
         with self.assertRaises(ValueError):
             lsc.structure = structure
+
 
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestGetBonds(unittest.TestCase):

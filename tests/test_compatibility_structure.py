@@ -58,6 +58,7 @@ def _patch_np_in1d():
 
     return _ctx()
 
+
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilityInit(unittest.TestCase):
     def test_init_defaults(self):
@@ -182,9 +183,7 @@ class TestStructureBond(unittest.TestCase):
 
         self.assertIn("Atoms", result)
         self.assertIn("Bonds", result)
-        mock_gb.assert_called_once_with(
-            structure=self.structure, max_shells=1
-        )
+        mock_gb.assert_called_once_with(structure=self.structure, max_shells=1)
 
     def test_structure_bond_calculates_bonds_with_cutoff(self):
         """When cutoff_radius is set, get_bonds is called with radius keyword."""

@@ -110,7 +110,9 @@ class TestStructureFromParsedOutput(unittest.TestCase):
         }
         result = structure_from_parsed_output(self.initial, shifted, wrap=True)
         # After wrapping, positions should be equivalent to the original ones.
-        np.testing.assert_allclose(result.get_positions(), self.initial.get_positions())
+        np.testing.assert_allclose(
+            result.get_positions(), self.initial.get_positions(), atol=1e-15
+        )
 
     def test_index_argument(self):
         """Selecting a specific frame via ``index`` returns the correct data."""

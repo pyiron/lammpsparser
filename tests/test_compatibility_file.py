@@ -139,7 +139,9 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        np.testing.assert_array_equal(parsed_output["generic"]["steps"], self.expected_steps)
+        np.testing.assert_array_equal(
+            parsed_output["generic"]["steps"], self.expected_steps
+        )
         np.testing.assert_allclose(
             parsed_output["generic"]["natoms"], self.expected_natoms
         )

@@ -1,7 +1,13 @@
 from ase.atoms import Atoms
 
 
-def structure_from_parsed_output(initial_structure: Atoms, parsed_output: dict, *, wrap: bool = False, index: int = -1) -> Atoms:
+def structure_from_parsed_output(
+    initial_structure: Atoms,
+    parsed_output: dict,
+    *,
+    wrap: bool = False,
+    index: int = -1,
+) -> Atoms:
     """Construct an `Atoms` object from parsed output data.
 
     Args:

@@ -2,6 +2,7 @@ import unittest
 import os
 import shutil
 from ase.build import bulk
+import numpy as np
 import pandas
 from lammpsparser.compatibility.file import (
     lammps_file_interface_function,
@@ -35,6 +36,22 @@ class TestCompatibilityFile(unittest.TestCase):
             "volume",
             "pressures",
         ]
+        self.expected_steps = np.arange(0, 1100, 100)
+        self.expected_natoms = np.full(11, 32.0)
+        self.expected_temperatures = np.array(
+            [1000.0, 507.46684483912, 366.364949947714]
+        )
+        self.expected_first_position = np.array([0.0, 0.0, 0.0])
+        self.expected_first_velocity = np.array(
+            [-0.00279601111740842, 0.000940219581254378, -0.00830002819983465]
+        )
+        self.expected_first_pressure = np.array(
+            [
+                [0.525735318845055, -0.149822348909943, -0.0841888743997389],
+                [-0.149822348909943, 0.55277137918788, -0.0288188194980265],
+                [-0.0841888743997389, -0.0288188194980265, 0.531069383375595],
+            ]
+        )
 
     def tearDown(self):
         if os.path.exists(self.working_dir):
@@ -87,6 +104,15 @@ class TestCompatibilityFile(unittest.TestCase):
                 calc_mode="md",
                 resource_path=os.path.join(self.static_path, "potential"),
             )
+        with self.assertRaises(TypeError):
+            lammps_file_interface_function(
+                working_directory=self.working_dir,
+                structure=self.structure,
+                potential=self.potential,
+                calc_dataclass="invalid",
+                units=self.units,
+                resource_path=os.path.join(self.static_path, "potential"),
+            )
 
     def test_calc_md_npt(self):
         md_input = CalcMDInput(
@@ -113,6 +139,25 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
+        np.testing.assert_array_equal(
+            parsed_output["generic"]["steps"], self.expected_steps
+        )
+        np.testing.assert_allclose(
+            parsed_output["generic"]["natoms"], self.expected_natoms
+        )
+        np.testing.assert_allclose(
+            parsed_output["generic"]["temperature"][:3],
+            self.expected_temperatures,
+        )
+        np.testing.assert_allclose(
+            parsed_output["generic"]["positions"][0, 0], self.expected_first_position
+        )
+        np.testing.assert_allclose(
+            parsed_output["generic"]["velocities"][0, 0], self.expected_first_velocity
+        )
+        np.testing.assert_allclose(
+            parsed_output["generic"]["pressures"][0], self.expected_first_pressure
+        )
         with open(self.working_dir + "/lmp.in", "r") as f:
             content = f.readlines()
         content_expected = [
@@ -136,6 +181,27 @@ class TestCompatibilityFile(unittest.TestCase):
         ]
         for line in content_expected:
             self.assertIn(line, content)
+
+    def test_input_control_file_appends_unused_command(self):
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_mode="static",
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            input_control_file={"neighbor": "0.3 bin"},
+        )
+        self.assertEqual(shell_output, "")
+        self.assertFalse(job_crashed)
+        for key in self.keys:
+            self.assertIn(key, parsed_output["generic"])
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("neighbor 0.3 bin\n", content)
 
     def test_calc_md_npt_langevin(self):
         md_input = CalcMDInput(

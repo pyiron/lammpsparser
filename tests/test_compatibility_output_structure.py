@@ -47,19 +47,27 @@ class TestStructureFromParsedOutput(unittest.TestCase):
         # Multi‑frame parsed output – two distinct frames.
         self.multi_frame = {
             "generic": {
-                "indices": np.stack([np.arange(self.natoms), np.arange(self.natoms) + 10]),
-                "positions": np.stack([
-                    self.initial.get_positions(),
-                    self.initial.get_positions() + 1.0,
-                ]),
-                "velocities": np.stack([
-                    np.zeros((self.natoms, 3)),
-                    np.ones((self.natoms, 3)),
-                ]),
-                "cells": np.stack([
-                    self.initial.get_cell().array,
-                    self.initial.get_cell().array,
-                ]),
+                "indices": np.stack(
+                    [np.arange(self.natoms), np.arange(self.natoms) + 10]
+                ),
+                "positions": np.stack(
+                    [
+                        self.initial.get_positions(),
+                        self.initial.get_positions() + 1.0,
+                    ]
+                ),
+                "velocities": np.stack(
+                    [
+                        np.zeros((self.natoms, 3)),
+                        np.ones((self.natoms, 3)),
+                    ]
+                ),
+                "cells": np.stack(
+                    [
+                        self.initial.get_cell().array,
+                        self.initial.get_cell().array,
+                    ]
+                ),
             }
         }
 
@@ -77,9 +85,15 @@ class TestStructureFromParsedOutput(unittest.TestCase):
         np.testing.assert_array_equal(
             result.get_array("indices"), self.single_frame["generic"]["indices"][0]
         )
-        np.testing.assert_allclose(result.get_positions(), self.single_frame["generic"]["positions"][0])
-        np.testing.assert_allclose(result.get_velocities(), self.single_frame["generic"]["velocities"][0])
-        np.testing.assert_allclose(result.get_cell().array, self.single_frame["generic"]["cells"][0])
+        np.testing.assert_allclose(
+            result.get_positions(), self.single_frame["generic"]["positions"][0]
+        )
+        np.testing.assert_allclose(
+            result.get_velocities(), self.single_frame["generic"]["velocities"][0]
+        )
+        np.testing.assert_allclose(
+            result.get_cell().array, self.single_frame["generic"]["cells"][0]
+        )
 
     def test_wrap_option(self):
         """When ``wrap=True`` positions outside the cell are wrapped back in."""
@@ -87,9 +101,9 @@ class TestStructureFromParsedOutput(unittest.TestCase):
         shifted = {
             "generic": {
                 "indices": np.array([[0, 1, 2, 3]]),
-                "positions": np.array([
-                    self.initial.get_positions() + self.initial.get_cell().array[0]
-                ]),
+                "positions": np.array(
+                    [self.initial.get_positions() + self.initial.get_cell().array[0]]
+                ),
                 "velocities": np.zeros((1, self.natoms, 3)),
                 "cells": np.array([self.initial.get_cell().array]),
             }
@@ -102,9 +116,15 @@ class TestStructureFromParsedOutput(unittest.TestCase):
         """Selecting a specific frame via ``index`` returns the correct data."""
         # Choose the first frame (index 0) from the multi‑frame dict.
         result = structure_from_parsed_output(self.initial, self.multi_frame, index=0)
-        np.testing.assert_array_equal(result.get_array("indices"), self.multi_frame["generic"]["indices"][0])
-        np.testing.assert_allclose(result.get_positions(), self.multi_frame["generic"]["positions"][0])
-        np.testing.assert_allclose(result.get_velocities(), self.multi_frame["generic"]["velocities"][0])
+        np.testing.assert_array_equal(
+            result.get_array("indices"), self.multi_frame["generic"]["indices"][0]
+        )
+        np.testing.assert_allclose(
+            result.get_positions(), self.multi_frame["generic"]["positions"][0]
+        )
+        np.testing.assert_allclose(
+            result.get_velocities(), self.multi_frame["generic"]["velocities"][0]
+        )
 
 
 if __name__ == "__main__":

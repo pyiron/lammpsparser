@@ -2,7 +2,7 @@ import numpy as np
 from ase.atoms import Atoms
 
 
-def _get_fixed_atom_boolean_vector(structure: Atoms):
+def _get_fixed_atom_boolean_vector(structure: Atoms) -> np.ndarray:
     fixed_atom_vector = np.array([[False, False, False]] * len(structure))
     for c in structure.constraints:
         c_dict = c.todict()
@@ -27,8 +27,8 @@ def _get_fixed_atom_boolean_vector(structure: Atoms):
     return fixed_atom_vector
 
 
-def set_selective_dynamics(structure: Atoms, calc_md: bool = False):
-    control_dict = {}
+def set_selective_dynamics(structure: Atoms, calc_md: bool = False) -> dict[str, str]:
+    control_dict: dict[str, str] = {}
     if len(structure.constraints) > 0:
         sel_dyn = _get_fixed_atom_boolean_vector(structure=structure)
         # Enter loop only if constraints present

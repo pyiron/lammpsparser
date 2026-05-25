@@ -7,7 +7,7 @@ from __future__ import annotations
 import decimal as dec
 import posixpath
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from ase.atoms import Atoms
@@ -16,12 +16,12 @@ from ase.data import atomic_masses, atomic_numbers
 from lammpsparser.units import UnitConverter
 
 try:
-    from ase.calculators.lammps import Prism
+    from ase.calculators.lammps import Prism as PrismBase
 except ImportError:
     try:
-        from ase.calculators.lammpsrun import Prism
+        from ase.calculators.lammpsrun import Prism as PrismBase
     except ImportError:
-        from ase.calculators.lammpsrun import prism as Prism
+        from ase.calculators.lammpsrun import prism as PrismBase  # type: ignore[attr-defined,no-redef]
 
 __author__ = "Joerg Neugebauer, Sudarsan Surendralal, Yury Lysogorskiy, Jan Janssen, Markus Tautschnig"
 __copyright__ = (
@@ -35,7 +35,7 @@ __status__ = "production"
 __date__ = "Sep 1, 2017"
 
 
-class UnfoldingPrism(Prism):
+class UnfoldingPrism(PrismBase):
     """
     Create a lammps-style triclinic prism object from a cell
 
@@ -69,7 +69,7 @@ class UnfoldingPrism(Prism):
                 cell, pbc=np.array(pbc), tolerance=float("1e-{}".format(digits))
             )
         except TypeError:
-            super(UnfoldingPrism, self).__init__(cell, pbc=np.array(pbc), digits=digits)
+            super(UnfoldingPrism, self).__init__(cell, pbc=np.array(pbc), digits=digits)  # type: ignore[call-arg]
         a, b, c = cell
         an, bn, cn = [np.linalg.norm(v) for v in cell]
 
@@ -270,8 +270,8 @@ class LammpsStructure:
                     input_str += format_str.format(id_atom, x, y, z)
             elif len(self._structure.positions[0]) == 2:
                 format_str = "{0:d} {1:f} {2:f}\n"
-                for id_atom, (x, y) in enumerate(vels, start=1):
-                    input_str += format_str.format(id_atom, x, y)
+                for id_atom, velocity in enumerate(vels, start=1):
+                    input_str += format_str.format(id_atom, velocity[0], velocity[1])
         return input_str
 
     @property
@@ -352,7 +352,7 @@ class LammpsStructure:
             + "0. {} zlo zhi\n".format(zhi)
         )
 
-        if is_skewed(self.structure) or self._force_skewed:
+        if is_skewed(self._structure) or self._force_skewed:
             simulation_cell += "{0} {1} {2} xy xz yz\n".format(xy, xz, yz)
 
         return simulation_cell
@@ -383,7 +383,7 @@ class LammpsStructure:
             )
         return (
             self.lammps_header(
-                structure=self.structure,
+                structure=self._structure,
                 cell_dimensions=self.simulation_cell(),
                 species_lammps_id_dict=species_lammps_id_dict,
             )
@@ -500,7 +500,7 @@ def is_skewed(structure: Atoms, tolerance: float = 1.0e-8) -> bool:
 
 def write_lammps_datafile(
     structure: Atoms,
-    potential_elements: Union[np.ndarray, list],
+    potential_elements: Union[np.ndarray, list[str]],
     bond_dict: Optional[Dict] = None,
     units: str = "metal",
     file_name: str = "lammps.data",
@@ -508,7 +508,7 @@ def write_lammps_datafile(
     atom_type: str = "atomic",
 ) -> None:
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
-    lammps_str.el_eam_lst = potential_elements
+    lammps_str.el_eam_lst = cast(List[str], list(potential_elements))
     lammps_str.structure = structure
     lammps_str.write_file(file_name=file_name, cwd=working_directory)
 

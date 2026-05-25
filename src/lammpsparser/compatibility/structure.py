@@ -17,7 +17,7 @@ class LammpsStructureCompatibility(LammpsStructure):
         atom_type: str = "atomic",
     ):
         super().__init__(bond_dict=bond_dict, units=units, atom_type=atom_type)
-        self._molecule_ids = []
+        self._molecule_ids: list[int] = []
 
     @property
     def structure(self) -> Optional[Atoms]:

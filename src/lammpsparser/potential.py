@@ -49,8 +49,8 @@ class PotentialAbstract:
     def __init__(
         self,
         potential_df: pandas.DataFrame,
-        default_df: pandas.DataFrame = None,
-        selected_atoms: list[str] = None,
+        default_df: Optional[pandas.DataFrame] = None,
+        selected_atoms: Optional[list[str]] = None,
     ):
         self._potential_df = potential_df
         self._default_df = default_df
@@ -328,7 +328,7 @@ def update_potential_paths(
 
 
 def get_resource_path_from_conda(
-    env_variables: tuple[str] = ("CONDA_PREFIX", "CONDA_DIR"),
+    env_variables: tuple[str, ...] = ("CONDA_PREFIX", "CONDA_DIR"),
 ) -> str:
     env = os.environ
     for conda_var in env_variables:
@@ -359,7 +359,7 @@ def get_potential_by_name(potential_name: str, resource_path: Optional[str] = No
 
 def validate_potential_dataframe(
     potential_dataframe: pandas.DataFrame,
-) -> pandas.DataFrame:
+) -> Union[pandas.DataFrame, pandas.Series]:
     if isinstance(potential_dataframe, pandas.Series):
         return potential_dataframe
     elif isinstance(potential_dataframe, pandas.DataFrame):

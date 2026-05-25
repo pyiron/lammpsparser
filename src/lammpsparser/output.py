@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -66,8 +66,8 @@ def parse_lammps_output(
     dump_h5_file_name: str = "dump.h5",
     dump_out_file_name: str = "dump.out",
     log_lammps_file_name: str = "log.lammps",
-    remap_indices_funct: callable = remap_indices_ase,
-) -> Dict:
+    remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+) -> Dict[str, Dict[str, Any]]:
     if prism is None:
         prism = UnfoldingPrism(structure.cell)
     dump_dict = _parse_dump(
@@ -86,7 +86,7 @@ def parse_lammps_output(
 
     convert_units = UnitConverter(units).convert_array_to_pyiron_units
 
-    hdf_output = {"generic": {}, "lammps": {}}
+    hdf_output: Dict[str, Dict[str, Any]] = {"generic": {}, "lammps": {}}
     hdf_generic = hdf_output["generic"]
     hdf_lammps = hdf_output["lammps"]
 
@@ -128,8 +128,8 @@ def _parse_dump(
     prism: UnfoldingPrism,
     structure: Atoms,
     potential_elements: Union[np.ndarray, List],
-    remap_indices_funct: callable = remap_indices_ase,
-) -> Dict:
+    remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+) -> Dict[str, Any]:
     if os.path.isfile(dump_h5_full_file_name):
         if not _check_ortho_prism(prism=prism):
             raise RuntimeError(
@@ -157,14 +157,14 @@ def _collect_dump_from_text(
     prism: UnfoldingPrism,
     structure: Atoms,
     potential_elements: Union[np.ndarray, List],
-    remap_indices_funct: callable = remap_indices_ase,
-) -> Dict:
+    remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+) -> Dict[str, Any]:
     """
     general purpose routine to extract static from a lammps dump file
     """
     rotation_lammps2orig = prism.R.T
     dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name)
-    dump_dict = {}
+    dump_dict: Dict[str, Any] = {}
     for key, val in dump_lammps_dict.items():
         if key in ["cells"]:
             dump_dict[key] = [prism.unfold_cell(cell=cell) for cell in val]
@@ -337,4 +337,4 @@ def _check_ortho_prism(
     Returns:
         boolean: True or False
     """
-    return np.isclose(prism.R, np.eye(3), rtol=rtol, atol=atol).all()
+    return bool(np.isclose(prism.R, np.eye(3), rtol=rtol, atol=atol).all())

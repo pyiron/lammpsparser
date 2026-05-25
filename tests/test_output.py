@@ -543,7 +543,7 @@ class TestLammpsOutput(unittest.TestCase):
     def test_jagged_array(self):
         structure_ni = bulk("Ni", cubic=True)
         structure_ni.set_chemical_symbols(["H", "Ni", "Ni", "Ni"])
-        output_dict = parse_lammps_output_files(
+        parse_lammps_output_files(
             working_directory=os.path.join(self.static_folder, "dump_chemical"),
             structure=structure_ni,
             potential_elements=["Ni", "Al", "H"],

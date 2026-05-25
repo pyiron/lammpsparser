@@ -1,5 +1,4 @@
 import unittest
-import numpy as np
 from src.lammpsparser.output_raw import (
     to_amat,
     parse_raw_dump_from_text,

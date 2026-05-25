@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-from unittest.mock import MagicMock
 from ase.build import bulk
 from ase.atoms import Atoms
 

@@ -8,7 +8,6 @@ the ``index`` argument which selects a specific frame from a multi‑frame outpu
 import unittest
 import numpy as np
 from ase.build import bulk
-from ase.atoms import Atoms
 
 from lammpsparser.compatibility.output import structure_from_parsed_output
 

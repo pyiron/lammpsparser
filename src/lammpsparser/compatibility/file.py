@@ -208,7 +208,7 @@ def lammps_file_interface_function(
         lmp_str_lst.append(f"write_restart {os.path.basename(restart_file)}")
 
     with open(os.path.join(working_directory, "lmp.in"), "w") as f:
-        f.writelines([l + "\n" for l in lmp_str_lst])
+        f.writelines([line + "\n" for line in lmp_str_lst])
 
     write_lammps_datafile(
         structure=structure,

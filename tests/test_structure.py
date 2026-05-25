@@ -265,11 +265,14 @@ class TestLammpsStructure(unittest.TestCase):
                 raise ImportError
             return original_import(name, globals, locals, fromlist, level)
 
-        with patch.dict(
-            sys.modules,
-            {"ase.calculators.lammpsrun": fake_lammpsrun},
-            clear=False,
-        ), patch("builtins.__import__", side_effect=fake_import):
+        with (
+            patch.dict(
+                sys.modules,
+                {"ase.calculators.lammpsrun": fake_lammpsrun},
+                clear=False,
+            ),
+            patch("builtins.__import__", side_effect=fake_import),
+        ):
             spec = importlib.util.spec_from_file_location(
                 "lammpsparser.structure_fallback_test", structure_path
             )

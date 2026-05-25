@@ -2,7 +2,10 @@ import unittest
 import numpy as np
 import os
 import sys
+import importlib.util
+import types
 from shutil import rmtree
+from unittest.mock import patch
 from ase.build import bulk
 from ase.atoms import Atoms
 from lammpsparser.structure import (
@@ -246,6 +249,63 @@ class TestLammpsStructure(unittest.TestCase):
         )
         up = UnfoldingPrism(cell=cell, pbc=(True, True, True))
         self.assertIsNotNone(up)
+
+    def test_import_fallback_to_lammpsrun_prism(self):
+        structure_path = os.path.abspath(
+            os.path.join(__file__, "..", "..", "src", "lammpsparser", "structure.py")
+        )
+        original_import = __import__
+        import_fail_count = {"lammps": 0}
+        fake_lammpsrun = types.ModuleType("ase.calculators.lammpsrun")
+        fake_lammpsrun.prism = object
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "ase.calculators.lammps" and import_fail_count["lammps"] == 0:
+                import_fail_count["lammps"] += 1
+                raise ImportError
+            return original_import(name, globals, locals, fromlist, level)
+
+        with patch.dict(
+            sys.modules,
+            {"ase.calculators.lammpsrun": fake_lammpsrun},
+            clear=False,
+        ), patch("builtins.__import__", side_effect=fake_import):
+            spec = importlib.util.spec_from_file_location(
+                "lammpsparser.structure_fallback_test", structure_path
+            )
+            self.assertIsNotNone(spec)
+            self.assertIsNotNone(spec.loader)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+        self.assertIsNotNone(module.PrismBase)
+
+    def test_get_velocities_input_string_two_dimensional_positions(self):
+        class DummyStructure:
+            def __init__(self):
+                self.positions = np.array([[0.0, 0.0]])
+                self._velocities = np.array([[1.0, 2.0, 3.0]])
+
+            def __len__(self):
+                return len(self.positions)
+
+            def get_velocities(self):
+                return self._velocities
+
+            def set_velocities(self, velocities):
+                self._velocities = velocities
+
+        lmp_structure = LammpsStructure()
+        lmp_structure._structure = DummyStructure()
+
+        with patch.object(
+            LammpsStructure,
+            "rotate_velocities",
+            return_value=[np.array([1.5, 2.5])],
+        ):
+            velocity_str = lmp_structure._get_velocities_input_string()
+
+        self.assertEqual(velocity_str, "Velocities\n\n1 1.500000 2.500000\n")
 
     def test_structure_charge(self):
         atoms = Atoms("Fe1", positions=np.zeros((1, 3)), cell=np.eye(3))

@@ -123,21 +123,21 @@ def lammps_file_interface_function(
 
     lmp_str_lst = []
     atom_type = "atomic"
-    for l in lammps_file_initialization(
+    for line in lammps_file_initialization(
         structure=structure,
         units=units,
         read_restart_file=read_restart_file,
         restart_file=restart_file,
     ):
-        if l.strip().startswith("units") and "units" in potential_replace:
+        if line.strip().startswith("units") and "units" in potential_replace:
             lmp_str_lst.append(potential_replace["units"])
-        elif l.strip().startswith("atom_style") and "atom_style" in potential_replace:
+        elif line.strip().startswith("atom_style") and "atom_style" in potential_replace:
             lmp_str_lst.append(potential_replace["atom_style"])
             atom_type = potential_replace["atom_style"].split()[-1]
-        elif l.strip().startswith("dimension") and "dimension" in potential_replace:
+        elif line.strip().startswith("dimension") and "dimension" in potential_replace:
             lmp_str_lst.append(potential_replace["dimension"])
         else:
-            lmp_str_lst.append(l)
+            lmp_str_lst.append(line)
 
     lmp_str_lst += potential_lst
     lmp_str_lst += ["variable dumptime equal {} ".format(calc_kwargs.get("n_print", 1))]
@@ -263,15 +263,15 @@ def _modify_input_dict(
 ):
     if input_control_file is not None:
         lmp_tmp_lst, keys_used = [], []
-        for l in lmp_str_lst:
-            ls = l.split()
+        for line in lmp_str_lst:
+            ls = line.split()
             if len(ls) >= 1:  # Remove empty lines
                 key = ls[0]
                 if key in input_control_file.keys():
                     lmp_tmp_lst.append(key + " " + input_control_file[key])
                     keys_used.append(key)
                 else:
-                    lmp_tmp_lst.append(l)
+                    lmp_tmp_lst.append(line)
         for k, v in input_control_file.items():
             if k not in keys_used:
                 lmp_tmp_lst.append(k + " " + v)
@@ -295,14 +295,14 @@ def _get_potential(potential, resource_path: Optional[str] = None):
 
     potential_replace = {}
     potential_lst = []
-    for l in potential_dataframe["Config"]:
-        if l.startswith("units"):
-            potential_replace["units"] = l
-        elif l.startswith("atom_style"):
-            potential_replace["atom_style"] = l
-        elif l.startswith("dimension"):
-            potential_replace["dimension"] = l
+    for line in potential_dataframe["Config"]:
+        if line.startswith("units"):
+            potential_replace["units"] = line
+        elif line.startswith("atom_style"):
+            potential_replace["atom_style"] = line
+        elif line.startswith("dimension"):
+            potential_replace["dimension"] = line
         else:
-            potential_lst.append(l)
+            potential_lst.append(line)
 
     return potential_lst, potential_replace, potential_dataframe["Species"]

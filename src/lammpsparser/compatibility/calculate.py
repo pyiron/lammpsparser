@@ -122,7 +122,7 @@ def calc_md(
                 "Target temperature for fix nvt/npt/nph cannot be 0 or negative"
             )
 
-        force_skewed = False
+        # force_skewed = False
         pressure = _pressure_to_lammps(
             pressure=pressure, rotation_matrix=rotation_matrix, units=units
         )
@@ -140,8 +140,8 @@ def calc_md(
                     pressure_string += " {0} {1} {1} {2}".format(
                         coord, value, pressure_damping_timescale
                     )
-                    if ii > 2:
-                        force_skewed = True
+                    # if ii > 2:
+                    #     force_skewed = True
 
         if langevin:  # NPT(Langevin)
             fix_ensemble_str = "fix ensemble all nph" + pressure_string

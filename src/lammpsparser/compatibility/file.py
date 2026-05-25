@@ -131,7 +131,9 @@ def lammps_file_interface_function(
     ):
         if line.strip().startswith("units") and "units" in potential_replace:
             lmp_str_lst.append(potential_replace["units"])
-        elif line.strip().startswith("atom_style") and "atom_style" in potential_replace:
+        elif (
+            line.strip().startswith("atom_style") and "atom_style" in potential_replace
+        ):
             lmp_str_lst.append(potential_replace["atom_style"])
             atom_type = potential_replace["atom_style"].split()[-1]
         elif line.strip().startswith("dimension") and "dimension" in potential_replace:

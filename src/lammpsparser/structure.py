@@ -21,7 +21,9 @@ except ImportError:
     try:
         from ase.calculators.lammpsrun import Prism as PrismBase
     except ImportError:
-        from ase.calculators.lammpsrun import prism as PrismBase  # type: ignore[attr-defined,no-redef]
+        from ase.calculators.lammpsrun import (
+            prism as PrismBase,  # type: ignore[attr-defined,no-redef]
+        )
 
 __author__ = "Joerg Neugebauer, Sudarsan Surendralal, Yury Lysogorskiy, Jan Janssen, Markus Tautschnig"
 __copyright__ = (

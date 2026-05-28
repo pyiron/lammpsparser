@@ -231,25 +231,25 @@ def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
     with open(file_name, "r") as f:
         dfs = []
         read_thermo = False
-        for l in f:
-            l = l.lstrip()
+        for line in f:
+            line = line.lstrip()
 
-            if l.startswith("Step"):
+            if line.startswith("Step"):
                 thermo_lines = ""
                 read_thermo = True
 
             if read_thermo:
-                if l.startswith("Loop") or l.startswith("ERROR"):
+                if line.startswith("Loop") or line.startswith("ERROR"):
                     read_thermo = False
                     dfs.append(
                         pd.read_csv(StringIO(thermo_lines), sep="\\s+", engine="c")
                     )
 
-                elif l.startswith("WARNING:"):
-                    warnings.warn(f"A warning was found in the log:\n{l}")
+                elif line.startswith("WARNING:"):
+                    warnings.warn(f"A warning was found in the log:\n{line}")
 
                 else:
-                    thermo_lines += l
+                    thermo_lines += line
 
     if len(dfs) == 1:
         df = dfs[0]

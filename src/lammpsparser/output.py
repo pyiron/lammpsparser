@@ -67,6 +67,7 @@ def parse_lammps_output(
     dump_out_file_name: str = "dump.out",
     log_lammps_file_name: str = "log.lammps",
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+    last_frame_only: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     if prism is None:
         prism = UnfoldingPrism(structure.cell)
@@ -77,6 +78,7 @@ def parse_lammps_output(
         structure=structure,
         potential_elements=potential_elements,
         remap_indices_funct=remap_indices_funct,
+        last_frame_only=last_frame_only,
     )
 
     generic_keys_lst, pressure_dict, df = _parse_log(
@@ -129,6 +131,7 @@ def _parse_dump(
     structure: Atoms,
     potential_elements: Union[np.ndarray, List],
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+    last_frame_only: bool = False,
 ) -> Dict[str, Any]:
     if os.path.isfile(dump_h5_full_file_name):
         if not _check_ortho_prism(prism=prism):
@@ -137,6 +140,7 @@ def _parse_dump(
             )
         return parse_raw_dump_from_h5md(
             file_name=dump_h5_full_file_name,
+            last_frame_only=last_frame_only,
         )
     elif os.path.exists(dump_out_full_file_name):
         return _collect_dump_from_text(
@@ -145,6 +149,7 @@ def _parse_dump(
             structure=structure,
             potential_elements=potential_elements,
             remap_indices_funct=remap_indices_funct,
+            last_frame_only=last_frame_only,
         )
     else:
         raise FileNotFoundError(
@@ -158,12 +163,13 @@ def _collect_dump_from_text(
     structure: Atoms,
     potential_elements: Union[np.ndarray, List],
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+    last_frame_only: bool = False,
 ) -> Dict[str, Any]:
     """
     general purpose routine to extract static from a lammps dump file
     """
     rotation_lammps2orig = prism.R.T
-    dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name)
+    dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name, last_frame_only=last_frame_only)
     dump_dict: Dict[str, Any] = {}
     for key, val in dump_lammps_dict.items():
         if key in ["cells"]:

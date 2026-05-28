@@ -169,7 +169,9 @@ def _collect_dump_from_text(
     general purpose routine to extract static from a lammps dump file
     """
     rotation_lammps2orig = prism.R.T
-    dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name, last_frame_only=last_frame_only)
+    dump_lammps_dict = parse_raw_dump_from_text(
+        file_name=file_name, last_frame_only=last_frame_only
+    )
     dump_dict: Dict[str, Any] = {}
     for key, val in dump_lammps_dict.items():
         if key in ["cells"]:

@@ -69,8 +69,12 @@ def parse_raw_dump_from_h5md(file_name: str, last_frame_only: bool = False) -> D
 
     with h5py.File(file_name, mode="r", libver="latest", swmr=True) as h5md:
         sl = slice(-1, None) if last_frame_only else slice(None)
-        positions = [pos_i.tolist() for pos_i in h5md["/particles/all/position/value"][sl]]
-        steps = [steps_i.tolist() for steps_i in h5md["/particles/all/position/step"][sl]]
+        positions = [
+            pos_i.tolist() for pos_i in h5md["/particles/all/position/value"][sl]
+        ]
+        steps = [
+            steps_i.tolist() for steps_i in h5md["/particles/all/position/step"][sl]
+        ]
         forces = [for_i.tolist() for for_i in h5md["/particles/all/force/value"][sl]]
         # following the explanation at: http://nongnu.org/h5md/h5md.html
         cell = [

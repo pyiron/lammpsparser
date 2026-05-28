@@ -33,6 +33,7 @@ def lammps_file_interface_function(
     write_restart_file: bool = False,
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
+    last_frame_only: bool = False,
 ):
     """
     A single function to execute a LAMMPS calculation based on the LAMMPS job implemented in pyiron
@@ -238,6 +239,7 @@ def lammps_file_interface_function(
         dump_h5_file_name="dump.h5",
         dump_out_file_name="dump.out",
         log_lammps_file_name="log.lammps",
+        last_frame_only=last_frame_only,
     )
     return shell, output, False
 

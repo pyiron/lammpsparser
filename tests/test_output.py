@@ -664,6 +664,43 @@ class TestLammpsOutput(unittest.TestCase):
             # "KinEng" column is not a generic key, so it goes to hdf_lammps
             self.assertIn("KinEng", output["lammps"])
 
+    def test_parse_dump_text_last_frame_only(self):
+        structure = bulk("Al")
+        prism = UnfoldingPrism(cell=structure.cell)
+        output = _parse_dump(
+            dump_h5_full_file_name="",
+            dump_out_full_file_name=os.path.join(
+                self.static_folder, "jagged_dump", "dump.out"
+            ),
+            prism=prism,
+            structure=structure,
+            potential_elements=["Al"],
+            remap_indices_funct=remap_indices_ase,
+            last_frame_only=True,
+        )
+        self.assertEqual(output["steps"], [1])
+        self.assertEqual(len(output["indices"]), 1)
+        self.assertEqual(len(output["cells"]), 1)
+
+    @unittest.skipIf(skip_h5py_test, "h5py not available")
+    def test_parse_dump_h5_last_frame_only(self):
+        structure = bulk("Ni", cubic=True)
+        prism = UnfoldingPrism(cell=structure.cell)
+        output = _parse_dump(
+            dump_h5_full_file_name=os.path.join(
+                self.static_folder, "full_job_h5", "dump.h5"
+            ),
+            dump_out_full_file_name="",
+            prism=prism,
+            structure=structure,
+            potential_elements=["Ni"],
+            remap_indices_funct=remap_indices_ase,
+            last_frame_only=True,
+        )
+        self.assertEqual(len(output["steps"]), 1)
+        self.assertEqual(len(output["cells"]), 1)
+        self.assertEqual(len(output["positions"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

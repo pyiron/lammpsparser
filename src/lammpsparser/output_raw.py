@@ -64,17 +64,22 @@ def to_amat(l_list: Union[np.ndarray, List]) -> List:
     return cell
 
 
-def parse_raw_dump_from_h5md(file_name: str) -> Dict:
+def parse_raw_dump_from_h5md(file_name: str, last_frame_only: bool = False) -> Dict:
     import h5py
 
     with h5py.File(file_name, mode="r", libver="latest", swmr=True) as h5md:
-        positions = [pos_i.tolist() for pos_i in h5md["/particles/all/position/value"]]
-        steps = [steps_i.tolist() for steps_i in h5md["/particles/all/position/step"]]
-        forces = [for_i.tolist() for for_i in h5md["/particles/all/force/value"]]
+        sl = slice(-1, None) if last_frame_only else slice(None)
+        positions = [
+            pos_i.tolist() for pos_i in h5md["/particles/all/position/value"][sl]
+        ]
+        steps = [
+            steps_i.tolist() for steps_i in h5md["/particles/all/position/step"][sl]
+        ]
+        forces = [for_i.tolist() for for_i in h5md["/particles/all/force/value"][sl]]
         # following the explanation at: http://nongnu.org/h5md/h5md.html
         cell = [
             np.eye(3) * np.array(cell_i.tolist())
-            for cell_i in h5md["/particles/all/box/edges/value"]
+            for cell_i in h5md["/particles/all/box/edges/value"][sl]
         ]
     return {
         "forces": forces,
@@ -84,12 +89,13 @@ def parse_raw_dump_from_h5md(file_name: str) -> Dict:
     }
 
 
-def parse_raw_dump_from_text(file_name: str) -> Dict:
+def parse_raw_dump_from_text(file_name: str, last_frame_only: bool = False) -> Dict:
     """
     Docstring for _parse_dump_from_text
 
     Args:
         file_name (str): The path to the lammps dump file.
+        last_frame_only (bool): If True, only the last frame is returned.
 
     Returns:
         Dict: Parsed dump data.
@@ -205,6 +211,14 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
                             dump.computes[kk] = []
                         dump.computes[kk].append(df[k].array)
 
+        if last_frame_only:
+            result = asdict(dump)
+            for k, v in result.items():
+                if k == "computes":
+                    result[k] = {ck: cv[-1:] for ck, cv in v.items()}
+                elif isinstance(v, list) and len(v) > 0:
+                    result[k] = v[-1:]
+            return result
         return asdict(dump)
 
 

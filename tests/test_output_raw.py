@@ -1,9 +1,17 @@
 import unittest
 from src.lammpsparser.output_raw import (
     to_amat,
+    parse_raw_dump_from_h5md,
     parse_raw_dump_from_text,
     parse_raw_lammps_log,
 )
+
+try:
+    import h5py  # noqa: F401
+
+    skip_h5py_test = False
+except ImportError:
+    skip_h5py_test = True
 
 
 class TestOutputRaw(unittest.TestCase):
@@ -51,3 +59,26 @@ class TestOutputRaw(unittest.TestCase):
         self.assertIn("test", data["computes"])
         self.assertEqual(len(data["mean_unwrapped_positions"]), 1)
         self.assertEqual(len(data["computes"]["test"]), 1)
+
+    def test_parse_raw_dump_from_text_last_frame_only(self):
+        data = parse_raw_dump_from_text(
+            "tests/static/jagged_dump/dump.out", last_frame_only=True
+        )
+        self.assertEqual(len(data["steps"]), 1)
+        self.assertEqual(data["steps"][0], 1)
+        self.assertEqual(len(data["cells"]), 1)
+        self.assertEqual(len(data["indices"]), 1)
+        self.assertEqual(len(data["forces"]), 1)
+        self.assertEqual(len(data["velocities"]), 1)
+        self.assertEqual(len(data["positions"]), 1)
+        self.assertEqual(len(data["unwrapped_positions"]), 1)
+
+    @unittest.skipIf(skip_h5py_test, "h5py not available")
+    def test_parse_raw_dump_from_h5md_last_frame_only(self):
+        data = parse_raw_dump_from_h5md(
+            "tests/static/full_job_h5/dump.h5", last_frame_only=True
+        )
+        self.assertEqual(len(data["steps"]), 1)
+        self.assertEqual(len(data["cells"]), 1)
+        self.assertEqual(len(data["forces"]), 1)
+        self.assertEqual(len(data["positions"]), 1)

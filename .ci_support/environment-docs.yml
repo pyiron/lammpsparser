@@ -2,6 +2,7 @@ channels:
 - conda-forge
 dependencies:
 - python =3.14
+- jupyter-book =1.0.0
 - nbsphinx
 - sphinx
 - sphinx_rtd_theme

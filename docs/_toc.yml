@@ -1,0 +1,5 @@
+format: jb-book
+root: README
+chapters:
+- file: example.ipynb
+- file: api.rst

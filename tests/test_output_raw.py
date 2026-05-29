@@ -61,8 +61,17 @@ class TestIterRawFrames(unittest.TestCase):
 
     def test_frame_keys(self):
         frame = next(_iter_raw_frames("tests/static/jagged_dump/dump.out"))
-        for key in ["steps", "natoms", "cells", "indices", "forces", "velocities",
-                    "positions", "unwrapped_positions", "computes"]:
+        for key in [
+            "steps",
+            "natoms",
+            "cells",
+            "indices",
+            "forces",
+            "velocities",
+            "positions",
+            "unwrapped_positions",
+            "computes",
+        ]:
             self.assertIn(key, frame)
 
     def test_start_stop(self):
@@ -78,6 +87,7 @@ class TestIterRawFrames(unittest.TestCase):
 
     def test_truncated_file_raises(self):
         import tempfile, os
+
         # Write a dump with a started-but-unfinished frame
         content = (
             "ITEM: TIMESTEP\n0\nITEM: NUMBER OF ATOMS\n2\n"

@@ -170,15 +170,21 @@ def _iter_raw_frames(
 
             line = f.readline()
             if "ITEM: NUMBER OF ATOMS" not in line:
-                raise ValueError(f"Expected NUMBER OF ATOMS at frame {frame_index}, got: {line!r}")
+                raise ValueError(
+                    f"Expected NUMBER OF ATOMS at frame {frame_index}, got: {line!r}"
+                )
             try:
                 n = int(f.readline())
             except ValueError as e:
-                raise ValueError(f"Malformed NUMBER OF ATOMS at frame {frame_index}") from e
+                raise ValueError(
+                    f"Malformed NUMBER OF ATOMS at frame {frame_index}"
+                ) from e
 
             line = f.readline()
             if "ITEM: BOX BOUNDS" not in line:
-                raise ValueError(f"Expected BOX BOUNDS at frame {frame_index}, got: {line!r}")
+                raise ValueError(
+                    f"Expected BOX BOUNDS at frame {frame_index}, got: {line!r}"
+                )
             try:
                 c1 = np.fromstring(f.readline(), dtype=float, sep=" ")
                 c2 = np.fromstring(f.readline(), dtype=float, sep=" ")
@@ -189,7 +195,9 @@ def _iter_raw_frames(
 
             line = f.readline()
             if "ITEM: ATOMS" not in line:
-                raise ValueError(f"Expected ITEM: ATOMS at frame {frame_index}, got: {line!r}")
+                raise ValueError(
+                    f"Expected ITEM: ATOMS at frame {frame_index}, got: {line!r}"
+                )
             columns = line.lstrip("ITEM: ATOMS").split()
 
             # --- decide whether to process this frame ---
@@ -227,25 +235,43 @@ def _iter_raw_frames(
                     "natoms": n,
                     "cells": cell,
                     "indices": df["type"].array.astype(int),
-                    "forces": np.stack([df["fx"].array, df["fy"].array, df["fz"].array], axis=1) if all(c in columns for c in ("fx", "fy", "fz")) else np.array([]),
-                    "mean_forces": np.stack([
-                        df["f_mean_forces[1]"].array,
-                        df["f_mean_forces[2]"].array,
-                        df["f_mean_forces[3]"].array,
-                    ], axis=1) if "f_mean_forces[1]" in columns else np.array([]),
-                    "velocities": np.stack([
-                        df["vx"].array, df["vy"].array, df["vz"].array
-                    ], axis=1) if all(c in columns for c in ("vx", "vy", "vz")) else np.array([]),
-                    "mean_velocities": np.stack([
-                        df["f_mean_velocities[1]"].array,
-                        df["f_mean_velocities[2]"].array,
-                        df["f_mean_velocities[3]"].array,
-                    ], axis=1) if "f_mean_velocities[1]" in columns else np.array([]),
+                    "forces": np.stack(
+                        [df["fx"].array, df["fy"].array, df["fz"].array], axis=1
+                    )
+                    if all(c in columns for c in ("fx", "fy", "fz"))
+                    else np.array([]),
+                    "mean_forces": np.stack(
+                        [
+                            df["f_mean_forces[1]"].array,
+                            df["f_mean_forces[2]"].array,
+                            df["f_mean_forces[3]"].array,
+                        ],
+                        axis=1,
+                    )
+                    if "f_mean_forces[1]" in columns
+                    else np.array([]),
+                    "velocities": np.stack(
+                        [df["vx"].array, df["vy"].array, df["vz"].array], axis=1
+                    )
+                    if all(c in columns for c in ("vx", "vy", "vz"))
+                    else np.array([]),
+                    "mean_velocities": np.stack(
+                        [
+                            df["f_mean_velocities[1]"].array,
+                            df["f_mean_velocities[2]"].array,
+                            df["f_mean_velocities[3]"].array,
+                        ],
+                        axis=1,
+                    )
+                    if "f_mean_velocities[1]" in columns
+                    else np.array([]),
                     "computes": {},
                 }
 
                 if "xsu" in columns:
-                    direct = np.stack([df["xsu"].array, df["ysu"].array, df["zsu"].array], axis=1)
+                    direct = np.stack(
+                        [df["xsu"].array, df["ysu"].array, df["zsu"].array], axis=1
+                    )
                     frame["unwrapped_positions"] = direct
                     frame["positions"] = direct - np.floor(direct)
                 else:
@@ -253,11 +279,14 @@ def _iter_raw_frames(
                     frame["positions"] = np.array([])
 
                 if "f_mean_positions[1]" in columns:
-                    frame["mean_unwrapped_positions"] = np.stack([
-                        df["f_mean_positions[1]"].array,
-                        df["f_mean_positions[2]"].array,
-                        df["f_mean_positions[3]"].array,
-                    ], axis=1)
+                    frame["mean_unwrapped_positions"] = np.stack(
+                        [
+                            df["f_mean_positions[1]"].array,
+                            df["f_mean_positions[2]"].array,
+                            df["f_mean_positions[3]"].array,
+                        ],
+                        axis=1,
+                    )
                 else:
                     frame["mean_unwrapped_positions"] = np.array([])
 

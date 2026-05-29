@@ -684,22 +684,28 @@ class TestIterLammpsFrames(unittest.TestCase):
         return os.path.join(self.static_folder, "compatibility_output")
 
     def test_yields_lammps_frame_instances(self):
-        frames = list(iter_lammps_frames(
-            working_directory=self._full_job_dir(),
-            structure=self.structure,
-            potential_elements=self.potential_elements,
-            units=self.units,
-        ))
+        frames = list(
+            iter_lammps_frames(
+                working_directory=self._full_job_dir(),
+                structure=self.structure,
+                potential_elements=self.potential_elements,
+                units=self.units,
+            )
+        )
         self.assertGreater(len(frames), 0)
         self.assertIsInstance(frames[0], LammpsFrame)
 
     def test_frame_has_required_fields(self):
-        frame = next(iter(iter_lammps_frames(
-            working_directory=self._full_job_dir(),
-            structure=self.structure,
-            potential_elements=self.potential_elements,
-            units=self.units,
-        )))
+        frame = next(
+            iter(
+                iter_lammps_frames(
+                    working_directory=self._full_job_dir(),
+                    structure=self.structure,
+                    potential_elements=self.potential_elements,
+                    units=self.units,
+                )
+            )
+        )
         self.assertIsInstance(frame.step, int)
         self.assertEqual(frame.cell.shape, (3, 3))
         self.assertEqual(frame.positions.ndim, 2)
@@ -709,12 +715,14 @@ class TestIterLammpsFrames(unittest.TestCase):
 
     def test_equivalence_with_batch_parser(self):
         """Streaming all frames must produce the same positions and forces as parse_lammps_output_files."""
-        frames = list(iter_lammps_frames(
-            working_directory=self._full_job_dir(),
-            structure=self.structure,
-            potential_elements=self.potential_elements,
-            units=self.units,
-        ))
+        frames = list(
+            iter_lammps_frames(
+                working_directory=self._full_job_dir(),
+                structure=self.structure,
+                potential_elements=self.potential_elements,
+                units=self.units,
+            )
+        )
         batch = parse_lammps_output_files(
             working_directory=self._full_job_dir(),
             structure=self.structure,
@@ -722,25 +730,33 @@ class TestIterLammpsFrames(unittest.TestCase):
             units=self.units,
         )
         streamed_positions = np.stack([f.positions for f in frames])
-        np.testing.assert_allclose(streamed_positions, batch["generic"]["positions"], rtol=1e-10)
+        np.testing.assert_allclose(
+            streamed_positions, batch["generic"]["positions"], rtol=1e-10
+        )
         streamed_forces = np.stack([f.forces for f in frames])
-        np.testing.assert_allclose(streamed_forces, batch["generic"]["forces"], rtol=1e-10)
+        np.testing.assert_allclose(
+            streamed_forces, batch["generic"]["forces"], rtol=1e-10
+        )
 
     def test_start_stop_slicing(self):
-        all_frames = list(iter_lammps_frames(
-            working_directory=self._multi_frame_dir(),
-            structure=self.multi_structure,
-            potential_elements=self.multi_potential_elements,
-            units=self.units,
-        ))
-        sliced = list(iter_lammps_frames(
-            working_directory=self._multi_frame_dir(),
-            structure=self.multi_structure,
-            potential_elements=self.multi_potential_elements,
-            units=self.units,
-            start=1,
-            stop=3,
-        ))
+        all_frames = list(
+            iter_lammps_frames(
+                working_directory=self._multi_frame_dir(),
+                structure=self.multi_structure,
+                potential_elements=self.multi_potential_elements,
+                units=self.units,
+            )
+        )
+        sliced = list(
+            iter_lammps_frames(
+                working_directory=self._multi_frame_dir(),
+                structure=self.multi_structure,
+                potential_elements=self.multi_potential_elements,
+                units=self.units,
+                start=1,
+                stop=3,
+            )
+        )
         self.assertEqual(len(sliced), 2)
         np.testing.assert_array_equal(sliced[0].positions, all_frames[1].positions)
         np.testing.assert_array_equal(sliced[1].positions, all_frames[2].positions)

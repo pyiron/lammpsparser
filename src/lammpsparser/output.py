@@ -27,6 +27,7 @@ class LammpsFrame:
     continuous trajectories, use parse_lammps_output_files instead, which
     also provides unwrapped_positions.
     """
+
     step: int
     cell: np.ndarray
     positions: np.ndarray

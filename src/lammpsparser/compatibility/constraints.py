@@ -3,6 +3,27 @@ from ase.atoms import Atoms
 
 
 def _get_fixed_atom_boolean_vector(structure: Atoms) -> np.ndarray:
+    """
+    Convert ASE constraints to a per-atom, per-direction boolean array.
+
+    Translates ASE :class:`~ase.constraints.FixAtoms` and
+    :class:`~ase.constraints.FixedPlane` constraints on ``structure`` into a
+    boolean array where ``True`` indicates that the corresponding degree of
+    freedom is frozen.
+
+    Args:
+        structure (ase.atoms.Atoms): Structure whose ``constraints`` attribute
+            is inspected.
+
+    Returns:
+        numpy.ndarray: Boolean array of shape ``(N, 3)`` where ``True`` means
+        the atom's motion in that Cartesian direction is fixed.
+
+    Raises:
+        ValueError: If a constraint type other than ``FixAtoms`` or
+            ``FixedPlane`` is encountered, or if the ``FixedPlane`` direction
+            is not one of the supported axis combinations.
+    """
     fixed_atom_vector = np.array([[False, False, False]] * len(structure))
     for c in structure.constraints:
         c_dict = c.todict()
@@ -28,6 +49,37 @@ def _get_fixed_atom_boolean_vector(structure: Atoms) -> np.ndarray:
 
 
 def set_selective_dynamics(structure: Atoms, calc_md: bool = False) -> dict[str, str]:
+    """
+    Translate ASE constraints into LAMMPS ``group`` / ``fix setforce`` commands.
+
+    Groups atoms by their frozen degrees of freedom and generates the
+    corresponding LAMMPS commands to zero the force (and optionally the
+    velocity) on those atoms.  Supports constraints on individual Cartesian
+    directions (x, y, z) as well as the combined xy, yz, and zx pairs.
+
+    The LAMMPS equivalent of ASE's ``FixAtoms`` is ``fix setforce 0.0 0.0 0.0``
+    and ``FixedPlane`` along an axis is ``fix setforce 0.0 NULL NULL`` (or the
+    appropriate permutation).
+
+    Args:
+        structure (ase.atoms.Atoms): Structure whose ``constraints`` are
+            mapped to LAMMPS commands.
+        calc_md (bool): If ``True``, also add ``velocity … set`` commands to
+            initialise constrained atoms with zero velocity (required for MD
+            to prevent initial kinetic energy in frozen directions).
+
+    Returns:
+        dict[str, str]: Ordered mapping of LAMMPS command keyword to the rest
+        of the command line.  For example::
+
+            {
+                "group constraintxyz": "id 1 2 3",
+                "fix constraintxyz": "constraintxyz setforce 0.0 0.0 0.0",
+                "velocity constraintxyz": "set 0.0 0.0 0.0",  # only when calc_md=True
+            }
+
+        Returns an empty dict if the structure has no constraints.
+    """
     control_dict: dict[str, str] = {}
     if len(structure.constraints) > 0:
         sel_dyn = _get_fixed_atom_boolean_vector(structure=structure)

@@ -21,22 +21,20 @@ class LammpsStructureCompatibility(LammpsStructure):
 
     @property
     def structure(self) -> Optional[Atoms]:
-        """
-
-        Returns:
-
-        """
+        """The ASE :class:`~ase.atoms.Atoms` object associated with this instance."""
         return self._structure
 
     @structure.setter
     def structure(self, structure):
         """
+        Set the atomic structure and serialise it to the internal LAMMPS data string.
+
+        Dispatches to :meth:`structure_full`, :meth:`structure_bond`,
+        :meth:`structure_charge`, or :meth:`structure_atomic` based on
+        ``self._atom_type``.
 
         Args:
-            structure:
-
-        Returns:
-
+            structure (ase.atoms.Atoms): The structure to serialise.
         """
         self._structure = structure
         if self.atom_type == "full":
@@ -52,9 +50,16 @@ class LammpsStructureCompatibility(LammpsStructure):
 
     def structure_bond(self):
         """
+        Serialise the structure for LAMMPS ``atom_style bond``.
+
+        Generates an ``Atoms`` block with the format
+        ``atom-ID molecule-ID atom-type x y z`` and a ``Bonds`` block that
+        lists all bonds inferred from the nearest-neighbour topology (first
+        coordination shell by default, or within ``cutoff_radius`` when set).
+        Bond types are assigned based on the pair of species involved.
 
         Returns:
-
+            str: Complete LAMMPS data file content (header + atoms + bonds).
         """
         species_lammps_id_dict = self.get_lammps_id_dict(self.el_eam_lst)
         self.molecule_ids = None
@@ -159,10 +164,18 @@ class LammpsStructureCompatibility(LammpsStructure):
 
     def structure_full(self):
         """
-        Write routine to create atom structure static file for atom_type='full' that can be loaded by LAMMPS
+        Serialise the structure for LAMMPS ``atom_style full``.
+
+        Generates an ``Atoms`` block with the format
+        ``atom-ID molecule-ID atom-type charge x y z`` and optional ``Bonds``
+        and ``Angles`` blocks.  Bonds and angles are derived from
+        ``self._bond_dict``, which specifies for each element which neighbours
+        to bond with, the cutoff distance, and the bond/angle type IDs.
+        Per-atom charges are read from the potential object.
 
         Returns:
-
+            str: Complete LAMMPS data file content
+            (header + atoms + bonds + angles).
         """
         species_lammps_id_dict = self.get_lammps_id_dict(self.el_eam_lst)
         self.molecule_ids = None
@@ -311,16 +324,24 @@ def get_bonds(
     structure: Atoms, radius=np.inf, max_shells=None, prec=0.1, num_neighbors=20
 ):
     """
+    Identify bonds in a structure based on neighbour distances.
+
+    Wraps :func:`structuretoolkit.analyse.get_neighbors` and its
+    ``get_bonds`` method to return a shell-based bond list for each atom.
 
     Args:
-        structure (ase.Atoms):
-        radius (float):
-        max_shells:
-        prec: minimum distance between any two clusters (if smaller considered to be single cluster)
-        num_neighbors:
+        structure (ase.atoms.Atoms): Atomic structure to analyse.
+        radius (float): Maximum bond length in Å (default: ``numpy.inf``).
+        max_shells (int, optional): Maximum number of coordination shells to
+            include.  ``None`` (default) imposes no limit.
+        prec (float): Minimum distance gap between two shells; shells closer
+            than ``prec`` are merged into one (default: ``0.1`` Å).
+        num_neighbors (int): Upper bound on the number of neighbours to
+            consider per atom (default: ``20``).
 
     Returns:
-
+        list: Nested bond list as returned by
+        :meth:`structuretoolkit.analyse.neighbors.get_bonds`.
     """
     neighbors = get_neighbors(
         structure=structure,

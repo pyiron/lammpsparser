@@ -308,10 +308,31 @@ def calc_minimize(
 
 
 def calc_static():
+    """
+    Generate LAMMPS input commands for a single-point (static) energy calculation.
+
+    Configures thermodynamic output and runs zero MD steps so that LAMMPS
+    computes and prints forces, stresses, and energies for the current
+    configuration without moving any atoms.
+
+    Returns:
+        list[str]: LAMMPS input lines to append to the input script.
+    """
     return ["variable thermotime equal 1"] + _get_thermo() + ["run 0"]
 
 
 def _get_thermo():
+    """
+    Return the standard thermodynamic output commands used by all calc modes.
+
+    Writes step, temperature, potential energy, total energy, full pressure
+    tensor, and volume every ``${thermotime}`` steps.  The ``${thermotime}``
+    variable must be defined before these lines are appended.
+
+    Returns:
+        list[str]: Three LAMMPS input lines: ``thermo_style``,
+        ``thermo_modify``, and ``thermo``.
+    """
     return [
         "thermo_style custom step temp pe etotal pxx pxy pxz pyy pyz pzz vol",
         "thermo_modify format float %20.15g",
@@ -320,6 +341,20 @@ def _get_thermo():
 
 
 def _is_isotropic_hydrostatic(pressure):
+    """
+    Return ``True`` when ``pressure`` describes an isotropic, hydrostatic state.
+
+    A pressure specification is considered isotropic and hydrostatic when the
+    three diagonal (axial) components are equal and the three off-diagonal
+    (shear) components are either all ``None`` or all equal to zero.
+
+    Args:
+        pressure (list): Six-element list ``[pxx, pyy, pzz, pxy, pxz, pyz]``
+            where ``None`` means "unconstrained".
+
+    Returns:
+        bool: ``True`` if the pressure is isotropic hydrostatic.
+    """
     axial_all_alike = None not in pressure[:3] and np.allclose(
         pressure[:3], pressure[0]
     )
@@ -433,12 +468,22 @@ def _pressure_to_lammps(pressure, rotation_matrix, units="metal"):
 
 def _get_rotation_matrix(structure, pressure):
     """
+    Derive the rotation matrix from the structure's prism and optionally perturb
+    the cell to support non-diagonal pressure components.
+
+    If the requested pressure includes shear components and the cell is not
+    already triclinic, a tiny cell perturbation is applied so that LAMMPS
+    permits the off-diagonal deformations.
 
     Args:
-        pressure:
+        structure (ase.atoms.Atoms): Current atomic structure.
+        pressure (float or list): Pressure specification (scalar or up to six
+            components).
 
     Returns:
-
+        tuple:
+            - numpy.ndarray: 3×3 rotation matrix from the ASE to LAMMPS frame.
+            - ase.atoms.Atoms: Possibly perturbed structure.
     """
     if structure is not None:
         prism = UnfoldingPrism(structure.cell)

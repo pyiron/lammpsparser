@@ -245,6 +245,28 @@ def lammps_file_interface_function(
 def lammps_file_initialization(
     structure, dimension=3, units="metal", read_restart_file=False, restart_file=None
 ):
+    """
+    Generate the LAMMPS input script preamble (units, boundary, atom_style, read_data).
+
+    Produces the first lines of a LAMMPS input script that set up the
+    simulation box.  When restarting from a binary restart file the
+    ``read_restart`` command is used instead of ``read_data``.  Boundary
+    conditions are derived from the ASE ``pbc`` attribute of ``structure``
+    (``p`` = periodic, ``f`` = fixed).
+
+    Args:
+        structure (ase.atoms.Atoms): Structure whose periodic boundary
+            conditions determine the ``boundary`` command.
+        dimension (int): Spatial dimensionality (default: ``3``).
+        units (str): LAMMPS unit system (default: ``"metal"``).
+        read_restart_file (bool): If ``True``, emit ``read_restart`` instead
+            of ``read_data`` (default: ``False``).
+        restart_file (str, optional): Filename of the restart file; required
+            when ``read_restart_file=True``.
+
+    Returns:
+        list[str]: LAMMPS input lines for the initialisation section.
+    """
     init_commands = ["units " + units]
     boundary = " ".join(["p" if coord else "f" for coord in structure.pbc])
     if read_restart_file:
@@ -263,6 +285,23 @@ def _modify_input_dict(
     input_control_file: Optional[dict] = None,
     lmp_str_lst: list[str] = [],
 ):
+    """
+    Apply user-supplied overrides to a LAMMPS input line list.
+
+    Iterates over ``lmp_str_lst`` and replaces any line whose first token
+    matches a key in ``input_control_file`` with the corresponding value.
+    Keys in ``input_control_file`` that do not match any existing line are
+    appended at the end.
+
+    Args:
+        input_control_file (dict, optional): Mapping from LAMMPS command
+            keyword (e.g. ``"timestep"``) to the replacement value string
+            (e.g. ``"0.5"``).  ``None`` (default) leaves the list unchanged.
+        lmp_str_lst (list[str]): Current list of LAMMPS input lines.
+
+    Returns:
+        list[str]: Modified (or unchanged) list of LAMMPS input lines.
+    """
     if input_control_file is not None:
         lmp_tmp_lst, keys_used = [], []
         for line in lmp_str_lst:
@@ -284,6 +323,30 @@ def _modify_input_dict(
 
 
 def _get_potential(potential, resource_path: Optional[str] = None):
+    """
+    Resolve a potential specification to LAMMPS input lines and species list.
+
+    Accepts a potential name string, a :class:`pandas.DataFrame`, or a
+    :class:`pandas.Series` and separates the ``"Config"`` lines into those
+    that override initialisation settings (``units``, ``atom_style``,
+    ``dimension``) and those that are actual force-field commands
+    (``pair_style``, ``pair_coeff``, …).
+
+    Args:
+        potential (str or pandas.DataFrame or pandas.Series): Potential
+            specification.  A string is looked up by name using
+            :func:`~lammpsparser.potential.get_potential_by_name`.
+        resource_path (str, optional): Path to the ``iprpy`` resource directory
+            passed to :func:`~lammpsparser.potential.get_potential_by_name`.
+
+    Returns:
+        tuple:
+            - list[str]: Force-field LAMMPS input lines.
+            - dict: Overrides for ``"units"``, ``"atom_style"``, and/or
+              ``"dimension"`` (keys present only when the potential redefines
+              them).
+            - list[str]: Ordered chemical species as declared in the potential.
+    """
     if isinstance(potential, str):
         potential_dataframe = get_potential_by_name(
             potential_name=potential, resource_path=resource_path

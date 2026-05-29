@@ -84,6 +84,20 @@ class PotentialAbstract:
         ]
 
     def find_by_name(self, potential_name: str) -> pandas.DataFrame:
+        """
+        Return the row(s) in the potential database matching an exact potential name.
+
+        Args:
+            potential_name (str): Exact name of the potential as listed in the
+                ``"Name"`` column of the database (e.g.
+                ``"2009--Mendelev-M-I--Al-Mg--LAMMPS--ipr1"``).
+
+        Returns:
+            pandas.DataFrame: Subset of the potential database with matching rows.
+
+        Raises:
+            ValueError: If no potential with that name is found.
+        """
         mask = self._potential_df["Name"] == potential_name
         if not mask.any():
             raise ValueError(f"Potential '{potential_name}' not found in database.")
@@ -116,13 +130,22 @@ class PotentialAbstract:
     @staticmethod
     def _get_potential_df(file_name_lst, resource_path):
         """
+        Walk ``resource_path`` and load the first CSV file whose name is in ``file_name_lst``.
+
+        The CSV is parsed with converters for the ``"Species"``, ``"Config"``,
+        and ``"Filename"`` columns so that Python lists stored as strings are
+        deserialised automatically.
 
         Args:
-            file_name_lst (set):
-            resource_path (str):
+            file_name_lst (set): Set of candidate CSV filenames to search for
+                (e.g. ``{"potentials_lammps.csv"}``).
+            resource_path (str): Root directory to search recursively.
 
         Returns:
-            pandas.DataFrame:
+            pandas.DataFrame: Potential database with one row per potential.
+
+        Raises:
+            ValueError: If no matching CSV is found under ``resource_path``.
         """
         for path, _folder_lst, file_lst in os.walk(resource_path):
             for periodic_table_file_name in file_name_lst:
@@ -234,6 +257,18 @@ class LammpsPotentialFile(PotentialAbstract):
 
 
 class PotentialAvailable:
+    """
+    Provides attribute-style access to a list of potential names.
+
+    Each potential name is exposed as an attribute with ``-`` and ``.``
+    replaced by ``_`` and a ``pot_`` prefix added, so that tab-completion
+    in interactive sessions works without quoting.  The original name string
+    is returned when the attribute is accessed.
+
+    Args:
+        list_of_potentials (list[str]): List of potential name strings.
+    """
+
     def __init__(self, list_of_potentials):
         self._list_of_potentials = {
             "pot_" + v.replace("-", "_").replace(".", "_"): v
@@ -254,6 +289,26 @@ class PotentialAvailable:
 
 
 def find_potential_file_base(path, resource_path_lst, rel_path):
+    """
+    Locate a potential file by searching a list of resource directories.
+
+    Checks both a direct path (``<resource_path>/<path>``) and an indirect
+    path (``<resource_path>/<rel_path>/<path>``) for each entry in
+    ``resource_path_lst``.
+
+    Args:
+        path (str or None): Filename or relative path of the potential file.
+        resource_path_lst (list[str]): Directories to search.
+        rel_path (str): Subdirectory appended to each resource path for the
+            indirect check.
+
+    Returns:
+        str: Absolute path to the first matching potential file.
+
+    Raises:
+        ValueError: If ``path`` is ``None`` or no match is found in any
+            resource directory.
+    """
     if path is not None:
         for resource_path in resource_path_lst:
             path_direct = os.path.join(resource_path, path)
@@ -309,6 +364,23 @@ def convert_path_to_abs_posix(path: str) -> str:
 def update_potential_paths(
     df_pot: pandas.DataFrame, resource_path: str
 ) -> pandas.DataFrame:
+    """
+    Replace bare filenames in the ``"Config"`` column with absolute paths.
+
+    LAMMPS ``pair_coeff`` commands reference potential files by filename only.
+    This function prepends ``resource_path`` so that LAMMPS can find the files
+    regardless of the working directory.
+
+    Args:
+        df_pot (pandas.DataFrame): Potential dataframe as returned by
+            :meth:`~lammpsparser.potential.PotentialAbstract.find` or
+            :func:`view_potentials`.
+        resource_path (str): Directory that contains the potential files.
+
+    Returns:
+        pandas.DataFrame: Copy of ``df_pot`` with ``"Config"`` entries updated
+        to use absolute paths.
+    """
     config_lst = []
     for row in df_pot.itertuples():
         potential_file_lst = row.Filename
@@ -330,6 +402,25 @@ def update_potential_paths(
 def get_resource_path_from_conda(
     env_variables: tuple[str, ...] = ("CONDA_PREFIX", "CONDA_DIR"),
 ) -> str:
+    """
+    Locate the ``iprpy-data`` resource directory from conda environment variables.
+
+    Checks each variable in ``env_variables`` and returns the path
+    ``<conda_prefix>/share/iprpy`` for the first one that resolves to an
+    existing directory.  The ``iprpy-data`` conda package installs the
+    ``potentials_lammps.csv`` index and potential files under this path.
+
+    Args:
+        env_variables (tuple[str, ...]): Environment variable names to check,
+            in priority order (default: ``("CONDA_PREFIX", "CONDA_DIR")``).
+
+    Returns:
+        str: Absolute path to the ``iprpy`` resource directory.
+
+    Raises:
+        ValueError: If none of the environment variables is set or the
+            corresponding directory does not exist.
+    """
     env = os.environ
     for conda_var in env_variables:
         if conda_var in env:
@@ -340,6 +431,22 @@ def get_resource_path_from_conda(
 
 
 def get_potential_dataframe(structure: Atoms, resource_path=None):
+    """
+    Return a dataframe of all potentials compatible with a given structure.
+
+    Combines :func:`view_potentials` and :func:`update_potential_paths` so
+    the ``"Config"`` column contains ready-to-use absolute paths to potential
+    files.
+
+    Args:
+        structure (ase.atoms.Atoms): Structure whose chemical species are used
+            to filter the potential database.
+        resource_path (str, optional): Path to the ``iprpy`` resource directory.
+            If ``None``, :func:`get_resource_path_from_conda` is called.
+
+    Returns:
+        pandas.DataFrame: Filtered potential dataframe with absolute file paths.
+    """
     if resource_path is None:
         resource_path = get_resource_path_from_conda()
     return update_potential_paths(
@@ -349,6 +456,23 @@ def get_potential_dataframe(structure: Atoms, resource_path=None):
 
 
 def get_potential_by_name(potential_name: str, resource_path: Optional[str] = None):
+    """
+    Retrieve a single potential row by its exact name string.
+
+    Looks up ``potential_name`` in the full potential database and returns its
+    row as a :class:`pandas.Series` with absolute file paths already inserted
+    in the ``"Config"`` field.
+
+    Args:
+        potential_name (str): Exact name of the potential (e.g.
+            ``"2009--Mendelev-M-I--Al-Mg--LAMMPS--ipr1"``).
+        resource_path (str, optional): Path to the ``iprpy`` resource directory.
+            If ``None``, :func:`get_resource_path_from_conda` is called.
+
+    Returns:
+        pandas.Series: Single row from the potential database with absolute
+        paths in the ``"Config"`` field.
+    """
     if resource_path is None:
         resource_path = get_resource_path_from_conda()
     df = LammpsPotentialFile(resource_path=resource_path).list()
@@ -360,6 +484,28 @@ def get_potential_by_name(potential_name: str, resource_path: Optional[str] = No
 def validate_potential_dataframe(
     potential_dataframe: pandas.DataFrame,
 ) -> Union[pandas.DataFrame, pandas.Series]:
+    """
+    Ensure a potential selection contains exactly one potential.
+
+    Accepts either a :class:`pandas.Series` (already a single row) or a
+    :class:`pandas.DataFrame` and validates that it contains exactly one row
+    before returning the row as a :class:`pandas.Series`.
+
+    Args:
+        potential_dataframe (pandas.DataFrame or pandas.Series): Potential
+            selection as returned by
+            :meth:`~lammpsparser.potential.PotentialAbstract.find` or
+            :func:`get_potential_dataframe`.
+
+    Returns:
+        pandas.Series: Single-row representation of the chosen potential.
+
+    Raises:
+        ValueError: If ``potential_dataframe`` is an empty DataFrame or
+            contains more than one row.
+        TypeError: If ``potential_dataframe`` is neither a DataFrame nor a
+            Series.
+    """
     if isinstance(potential_dataframe, pandas.Series):
         return potential_dataframe
     elif isinstance(potential_dataframe, pandas.DataFrame):

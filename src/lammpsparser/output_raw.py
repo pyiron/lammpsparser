@@ -26,6 +26,31 @@ class DumpData:
 
 
 def to_amat(l_list: Union[np.ndarray, List]) -> List:
+    """
+    Convert LAMMPS box bounds to a cell matrix in the lower-triangular convention used by ASE.
+
+    LAMMPS stores triclinic box boundaries as ``xlo_bound``, ``xhi_bound``, ``xy``,
+    ``ylo_bound``, ``yhi_bound``, ``xz``, ``zlo_bound``, ``zhi_bound``, ``yz``
+    (the 9-element form written by ``dump … BOX BOUNDS xy xz yz``), or as the
+    6-element orthorhombic form without tilt factors.  This function recovers the
+    conventional cell vectors ``a = (xhilo, 0, 0)``, ``b = (xy, yhilo, 0)``,
+    ``c = (xz, yz, zhilo)`` following the conversion documented in the LAMMPS
+    manual under *Triclinic (non-orthogonal) simulation boxes*.
+
+    Args:
+        l_list (numpy.ndarray or list): Flattened sequence of either 6 box-bound
+            values ``[xlo_bound, xhi_bound, ylo_bound, yhi_bound, zlo_bound,
+            zhi_bound]`` (orthogonal box) or 9 values ``[xlo_bound, xhi_bound,
+            xy, ylo_bound, yhi_bound, xz, zlo_bound, zhi_bound, yz]``
+            (triclinic box).
+
+    Returns:
+        list: 3×3 nested list representing the lower-triangular cell matrix
+        ``[[a, 0, 0], [xy, b, 0], [xz, yz, c]]``.
+
+    Raises:
+        ValueError: If ``l_list`` does not contain exactly 6 or 9 elements.
+    """
     lst = np.reshape(l_list, -1)
     if len(lst) == 9:
         (
@@ -65,6 +90,25 @@ def to_amat(l_list: Union[np.ndarray, List]) -> List:
 
 
 def parse_raw_dump_from_h5md(file_name: str) -> Dict:
+    """
+    Parse a LAMMPS dump file written in H5MD format.
+
+    H5MD (HDF5 Molecular Dynamics) output is produced when LAMMPS is compiled
+    with the H5MD package and the input script uses ``dump … h5md``.  The
+    function reads positions, forces, simulation steps, and cell edge lengths
+    from the standard H5MD path ``/particles/all/…``.
+
+    Args:
+        file_name (str): Path to the H5MD dump file (typically ``dump.h5``).
+
+    Returns:
+        dict: Dictionary with the following keys:
+
+        - ``"forces"`` (list of list): Per-atom forces for each snapshot.
+        - ``"positions"`` (list of list): Per-atom Cartesian positions for each snapshot.
+        - ``"steps"`` (list of int): Simulation timestep indices.
+        - ``"cells"`` (list of numpy.ndarray): 3×3 diagonal cell matrices for each snapshot.
+    """
     import h5py
 
     with h5py.File(file_name, mode="r", libver="latest", swmr=True) as h5md:
@@ -86,13 +130,38 @@ def parse_raw_dump_from_h5md(file_name: str) -> Dict:
 
 def parse_raw_dump_from_text(file_name: str) -> Dict:
     """
-    Docstring for _parse_dump_from_text
+    Parse a LAMMPS custom text dump file into a structured dictionary.
+
+    The file must have been created with a ``dump … custom`` command that writes
+    at least the columns ``id``, ``type``, ``xsu``, ``ysu``, ``zsu``, ``fx``,
+    ``fy``, ``fz``.  Optional columns ``vx``/``vy``/``vz`` (velocities),
+    ``f_mean_forces[1-3]``, ``f_mean_velocities[1-3]``, ``f_mean_positions[1-3]``
+    (time-averaged fixes), and any per-atom compute columns starting with ``c_``
+    are handled automatically.
+
+    Coordinates are expected as scaled (fractional) unwrapped positions
+    (``xsu``/``ysu``/``zsu``).  Wrapped fractional positions are derived by
+    taking ``xsu - floor(xsu)``.
 
     Args:
-        file_name (str): The path to the lammps dump file.
+        file_name (str): Path to the LAMMPS text dump file (typically ``dump.out``).
 
     Returns:
-        Dict: Parsed dump data.
+        dict: Dictionary with the following keys (empty lists when the
+        corresponding columns were absent from the dump):
+
+        - ``"steps"`` (list of int): Simulation timestep indices.
+        - ``"natoms"`` (list of int): Number of atoms at each snapshot.
+        - ``"cells"`` (list of list): 3×3 cell matrices (one per snapshot).
+        - ``"indices"`` (list of numpy.ndarray): Integer LAMMPS atom-type indices (1-based).
+        - ``"forces"`` (list of numpy.ndarray): Per-atom force vectors, shape ``(N, 3)``.
+        - ``"mean_forces"`` (list of numpy.ndarray): Time-averaged forces from ``fix ave/atom``.
+        - ``"velocities"`` (list of numpy.ndarray): Per-atom velocity vectors, shape ``(N, 3)``.
+        - ``"mean_velocities"`` (list of numpy.ndarray): Time-averaged velocities.
+        - ``"unwrapped_positions"`` (list of numpy.ndarray): Unwrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"mean_unwrapped_positions"`` (list of numpy.ndarray): Time-averaged unwrapped positions.
+        - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
     """
     with open(file_name, "r") as f:
         dump = DumpData()
@@ -210,13 +279,29 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
 
 def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
     """
-    Docstring for _parse_lammps_log
+    Parse the thermodynamic output from a LAMMPS log file.
+
+    LAMMPS writes thermo output to ``log.lammps`` (or a user-specified log
+    file) between a header line that starts with ``Step`` and a footer line
+    that starts with ``Loop``.  Multiple ``run`` commands in a single input
+    script produce multiple such blocks; all blocks are concatenated and an
+    extra ``LogStep`` column is added to identify which run each row belongs
+    to.
+
+    Lines beginning with ``WARNING:`` inside a thermo block are forwarded as
+    Python :func:`warnings.warn` calls.  Lines beginning with ``ERROR`` cause
+    the current thermo block to be closed (the error is not re-raised here,
+    but the resulting DataFrame will be truncated).
 
     Args:
-        file_name (str): The path to the lammps log file.
+        file_name (str): Path to the LAMMPS log file (typically ``log.lammps``).
 
     Returns:
-        pd.DataFrame: Dataframe containing the parsed log data.
+        pandas.DataFrame: DataFrame whose columns match the thermo keywords
+        used in the LAMMPS ``thermo_style custom`` command (e.g. ``Step``,
+        ``Temp``, ``PotEng``, ``TotEng``, ``Pxx``, …).  When multiple runs
+        are present a ``LogStep`` column (integer run index, 0-based) is
+        appended.
     """
     with open(file_name, "r") as f:
         dfs = []

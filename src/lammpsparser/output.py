@@ -68,6 +68,54 @@ def parse_lammps_output(
     log_lammps_file_name: str = "log.lammps",
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
 ) -> Dict[str, Dict[str, Any]]:
+    """
+    Parse all output files from a finished LAMMPS calculation.
+
+    Looks for a dump file (H5MD format preferred, text format as fallback) and
+    a log file in ``working_directory``, converts all quantities from the
+    LAMMPS unit system to pyiron/ASE units (Å, eV, ps, …), and returns the
+    results in a nested dictionary that can be stored directly in an HDF5 file.
+
+    The function resolves the LAMMPS triclinic-to-orthogonal coordinate
+    rotation via :class:`~lammpsparser.structure.UnfoldingPrism` and re-maps
+    atom-type indices back to structure indices via ``remap_indices_funct``.
+
+    Args:
+        working_directory (str): Directory that contains the LAMMPS output files.
+        structure (ase.atoms.Atoms): The input structure used for the calculation.
+            Required for index remapping and prism construction.
+        potential_elements (numpy.ndarray or list): Ordered list of chemical
+            symbols as they appear in the LAMMPS potential definition.  The
+            order determines the mapping from LAMMPS integer type IDs to
+            element symbols.
+        units (str): LAMMPS unit system used in the calculation (e.g.
+            ``"metal"``, ``"real"``, ``"si"``, ``"cgs"``, ``"electron"``).
+        prism (UnfoldingPrism, optional): Pre-constructed prism object.  If
+            ``None`` (default) a new one is built from ``structure.cell``.
+        dump_h5_file_name (str): Filename of the H5MD dump inside
+            ``working_directory`` (default: ``"dump.h5"``).
+        dump_out_file_name (str): Filename of the text dump inside
+            ``working_directory`` (default: ``"dump.out"``).
+        log_lammps_file_name (str): Filename of the LAMMPS log file inside
+            ``working_directory`` (default: ``"log.lammps"``).
+        remap_indices_funct (callable): Function used to map LAMMPS integer
+            type indices onto structure indices.  Defaults to
+            :func:`remap_indices_ase`.
+
+    Returns:
+        dict: Nested dictionary with two top-level keys:
+
+        - ``"generic"`` – quantities stored in pyiron/ASE units:
+          ``"steps"``, ``"cells"``, ``"positions"``, ``"forces"``,
+          ``"velocities"``, ``"indices"``, ``"temperature"``,
+          ``"energy_pot"``, ``"energy_tot"``, ``"volume"``,
+          ``"pressures"`` (if available), and any per-atom computes.
+        - ``"lammps"`` – raw LAMMPS-specific thermo columns that have no
+          generic equivalent.
+
+    Raises:
+        FileNotFoundError: If neither the H5MD nor the text dump file exists.
+    """
     if prism is None:
         prism = UnfoldingPrism(structure.cell)
     dump_dict = _parse_dump(
@@ -130,6 +178,28 @@ def _parse_dump(
     potential_elements: Union[np.ndarray, List],
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
 ) -> Dict[str, Any]:
+    """
+    Dispatch dump parsing to the correct reader (H5MD or text).
+
+    Prefers the H5MD file when it exists.  H5MD files do not require
+    coordinate rotation, but the prism must be orthorhombic; a
+    :exc:`RuntimeError` is raised when that condition is violated.
+
+    Args:
+        dump_h5_full_file_name (str): Absolute path to the H5MD dump file.
+        dump_out_full_file_name (str): Absolute path to the text dump file.
+        prism (UnfoldingPrism): Prism object for coordinate transformations.
+        structure (ase.atoms.Atoms): Input structure for index remapping.
+        potential_elements (numpy.ndarray or list): Ordered element list for index remapping.
+        remap_indices_funct (callable): Index remapping function.
+
+    Returns:
+        dict: Raw dump data dictionary as returned by the underlying parser.
+
+    Raises:
+        RuntimeError: If an H5MD file is present but the prism is not orthorhombic.
+        FileNotFoundError: If neither dump file exists.
+    """
     if os.path.isfile(dump_h5_full_file_name):
         if not _check_ortho_prism(prism=prism):
             raise RuntimeError(
@@ -160,7 +230,27 @@ def _collect_dump_from_text(
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
 ) -> Dict[str, Any]:
     """
-    general purpose routine to extract static from a lammps dump file
+    Post-process a raw text dump dictionary: rotate vectors and remap indices.
+
+    Applies the inverse of the LAMMPS coordinate rotation to forces, velocities,
+    and positions so that all vectors are expressed in the original ASE cell
+    frame.  Cell matrices are unfolded via
+    :meth:`~lammpsparser.structure.UnfoldingPrism.unfold_cell` and atom-type
+    indices are remapped from LAMMPS integer IDs to structure indices.
+
+    Args:
+        file_name (str): Path to the LAMMPS text dump file.
+        prism (UnfoldingPrism): Prism built from the input structure's cell.
+        structure (ase.atoms.Atoms): Input structure used for index remapping.
+        potential_elements (numpy.ndarray or list): Ordered element list.
+        remap_indices_funct (callable): Function mapping LAMMPS type IDs to
+            structure indices (default: :func:`remap_indices_ase`).
+
+    Returns:
+        dict: Processed dump dictionary with the same keys as
+        :func:`~lammpsparser.output_raw.parse_raw_dump_from_text` but with
+        all vector quantities rotated to the ASE frame and Cartesian positions
+        computed from fractional coordinates.
     """
     rotation_lammps2orig = prism.R.T
     dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name)
@@ -229,7 +319,29 @@ def _collect_output_log(
     file_name: str, prism: UnfoldingPrism
 ) -> Tuple[List[str], Dict, pd.DataFrame]:
     """
-    general purpose routine to extract static from a lammps log file
+    Parse the LAMMPS log file and organise thermo data into generic and pressure outputs.
+
+    Renames standard LAMMPS thermo column names to pyiron equivalents
+    (e.g. ``Temp`` → ``temperature``, ``PotEng`` → ``energy_pot``).
+    If all six independent Voigt pressure components (``Pxx``, ``Pyy``,
+    ``Pzz``, ``Pxy``, ``Pxz``, ``Pyz``) are present they are assembled into
+    a symmetric 3×3 pressure tensor per frame and rotated to the ASE frame
+    when the prism rotation is non-trivial.  Time-averaged pressures from
+    ``fix ave/time`` (``mean_pressure[1-6]``) are handled analogously.
+
+    Args:
+        file_name (str): Path to the LAMMPS log file.
+        prism (UnfoldingPrism): Prism object used to rotate the pressure
+            tensor when the simulation cell is triclinic.
+
+    Returns:
+        tuple:
+            - list[str]: Column names that belong in the ``"generic"`` output
+              dictionary.
+            - dict: Pressure arrays keyed by ``"pressures"`` and/or
+              ``"mean_pressures"``, shape ``(N_frames, 3, 3)``.
+            - pandas.DataFrame: Remaining thermo data (pressure columns
+              removed) with renamed columns.
     """
     df = parse_raw_lammps_log(file_name=file_name)
 

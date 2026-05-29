@@ -182,9 +182,11 @@ class UnfoldingPrism(PrismBase):
         return tuple([x for x in np.dot(position, self.R)])
 
     def f2qdec(self, f: float) -> dec.Decimal:
+        """Round ``f`` down to the Cartesian precision of the prism."""
         return dec.Decimal(str(f)).quantize(self.car_prec, dec.ROUND_DOWN)
 
     def f2s(self, f: float) -> str:
+        """Convert ``f`` to a string rounded to the Cartesian precision of the prism."""
         return str(dec.Decimal(str(f)).quantize(self.car_prec, dec.ROUND_HALF_EVEN))
 
     def get_lammps_prism_str(self) -> Tuple[str, ...]:
@@ -195,9 +197,21 @@ class UnfoldingPrism(PrismBase):
 
 class LammpsStructure:
     """
+    Generate LAMMPS data file content from an ASE :class:`~ase.atoms.Atoms` structure.
+
+    After construction, set :attr:`el_eam_lst` to the ordered list of element
+    symbols used by the interatomic potential and assign an
+    :class:`~ase.atoms.Atoms` object to :attr:`structure`.  The assignment
+    triggers the serialisation of the structure into LAMMPS data format.  Call
+    :meth:`write_file` to persist the result.
+
+    Supported ``atom_style`` modes are ``"atomic"`` (default) and ``"charge"``.
 
     Args:
-        input_file_name:
+        bond_dict (dict, optional): Bond topology dictionary (used by derived
+            classes for ``"bond"`` and ``"full"`` atom styles).
+        units (str): LAMMPS unit system (default: ``"metal"``).
+        atom_type (str): LAMMPS ``atom_style`` (default: ``"atomic"``).
     """
 
     def __init__(
@@ -228,22 +242,20 @@ class LammpsStructure:
 
     @property
     def structure(self) -> Optional[Atoms]:
-        """
-
-        Returns:
-
-        """
+        """The ASE :class:`~ase.atoms.Atoms` object associated with this instance."""
         return self._structure
 
     @structure.setter
     def structure(self, structure: Atoms):
         """
+        Set the atomic structure and serialise it to the internal LAMMPS data string.
+
+        The setter immediately builds the complete LAMMPS data file content
+        (header, cell, masses, atom positions, and optionally velocities) and
+        stores it in ``_string_input``.
 
         Args:
-            structure:
-
-        Returns:
-
+            structure (ase.atoms.Atoms): The structure to serialise.
         """
         self._structure = structure
         if self._atom_type == "charge":
@@ -278,27 +290,38 @@ class LammpsStructure:
 
     @property
     def el_eam_lst(self) -> List[str]:
-        """
-
-        Returns:
-
-        """
+        """Ordered list of element symbols as defined in the LAMMPS potential file."""
         return self._el_eam_lst
 
     @el_eam_lst.setter
     def el_eam_lst(self, el_eam_lst: List[str]):
         """
+        Set the ordered element list used to assign LAMMPS integer type IDs.
 
         Args:
-            el_eam_lst:
-
-        Returns:
-
+            el_eam_lst (list[str]): Chemical symbols in the same order as they
+                appear in the ``pair_coeff`` or ``pair_style`` commands of the
+                LAMMPS input script.
         """
         self._el_eam_lst = el_eam_lst
 
     @staticmethod
     def get_lammps_id_dict(el_eam_lst: List[str]) -> Dict[str, int]:
+        """
+        Build a mapping from element symbol to LAMMPS integer type ID (1-based).
+
+        The order of ``el_eam_lst`` determines the mapping, which must match
+        the order of species in the LAMMPS potential definition.
+
+        Args:
+            el_eam_lst (list[str]): Ordered list of element symbols.
+
+        Returns:
+            dict: Mapping ``{symbol: lammps_type_id}`` with IDs starting at 1.
+
+        Raises:
+            ValueError: If ``el_eam_lst`` is empty.
+        """
         if len(el_eam_lst) == 0:
             raise ValueError("el_eam_list is empty. Can not determine order of species")
         return {el: idx + 1 for idx, el in enumerate(el_eam_lst)}
@@ -313,6 +336,27 @@ class LammpsStructure:
         nbond_types: Optional[int] = None,
         nangle_types: Optional[int] = None,
     ) -> str:
+        """
+        Generate the header section of a LAMMPS data file.
+
+        Produces the counts block (number of atoms, atom types, bonds, angles)
+        followed by the cell dimensions and the ``Masses`` section.
+
+        Args:
+            structure (ase.atoms.Atoms): Structure whose atom count and species
+                masses are written.
+            cell_dimensions (str): Pre-formatted string with ``xlo``/``xhi``/…
+                lines as returned by :meth:`simulation_cell`.
+            species_lammps_id_dict (dict): Mapping ``{symbol: lammps_type_id}``
+                as returned by :meth:`get_lammps_id_dict`.
+            nbonds (int, optional): Total number of bonds (omitted when ``None``).
+            nangles (int, optional): Total number of angles (omitted when ``None``).
+            nbond_types (int, optional): Number of distinct bond types.
+            nangle_types (int, optional): Number of distinct angle types.
+
+        Returns:
+            str: Header string ready to be prepended to the data file.
+        """
         atomtypes = (
             "Start File for LAMMPS \n"
             + "{0:d} atoms".format(len(structure))
@@ -338,9 +382,17 @@ class LammpsStructure:
 
     def simulation_cell(self) -> str:
         """
+        Format the simulation cell dimensions as a LAMMPS data file box block.
+
+        Builds an :class:`UnfoldingPrism` from the current structure's cell and
+        writes the ``xlo xhi``, ``ylo yhi``, ``zlo zhi`` lines (and ``xy xz yz``
+        for skewed cells) in the high-precision format required by LAMMPS.
 
         Returns:
+            str: Multi-line string with the box bounds block.
 
+        Raises:
+            ValueError: If no structure has been assigned.
         """
         if self._structure is None:
             raise ValueError("Structure not set")
@@ -361,10 +413,17 @@ class LammpsStructure:
 
     def structure_atomic(self) -> str:
         """
-        Write routine to create atom structure static file that can be loaded by LAMMPS
+        Serialise the structure for LAMMPS ``atom_style atomic``.
+
+        Writes the header followed by an ``Atoms`` block where each line has
+        the format ``atom-ID atom-type x y z``.  Positions are rotated to the
+        LAMMPS upper-triangular cell frame.
 
         Returns:
+            str: Complete LAMMPS data file content (header + atoms).
 
+        Raises:
+            ValueError: If no structure or element list has been set.
         """
         if self._structure is None:
             raise ValueError("Structure not set")
@@ -395,12 +454,17 @@ class LammpsStructure:
 
     def structure_charge(self):
         """
-        Create atom structure including the atom charges.
+        Serialise the structure for LAMMPS ``atom_style charge``.
 
-        By convention the LAMMPS atom type numbers are chose alphabetically for the chemical species.
+        Writes the header followed by an ``Atoms`` block where each line has
+        the format ``atom-ID atom-type charge x y z``.  The per-atom charges
+        are read from :meth:`ase.atoms.Atoms.get_initial_charges`.  By
+        convention, LAMMPS atom type numbers are assigned alphabetically for
+        each chemical species.  Positions are rotated to the LAMMPS
+        upper-triangular cell frame.
 
-        Returns: LAMMPS readable structure.
-
+        Returns:
+            str: Complete LAMMPS data file content (header + atoms).
         """
         species_lammps_id_dict = self.get_lammps_id_dict(self.el_eam_lst)
         atoms = "Atoms\n\n"
@@ -509,6 +573,29 @@ def write_lammps_datafile(
     working_directory: Optional[str] = None,
     atom_type: str = "atomic",
 ) -> None:
+    """
+    Write an ASE structure to a LAMMPS data file.
+
+    Convenience wrapper around :class:`LammpsStructure` that handles the full
+    workflow: build the data-file string, optionally combine with a
+    ``working_directory``, and write to disk.  This is the file loaded by
+    LAMMPS via ``read_data`` in the input script.
+
+    Args:
+        structure (ase.atoms.Atoms): Atomic structure to write.
+        potential_elements (numpy.ndarray or list[str]): Ordered list of
+            element symbols matching the potential definition.  Determines the
+            LAMMPS integer type IDs.
+        bond_dict (dict, optional): Bond topology used for ``"bond"`` and
+            ``"full"`` atom styles (pass ``None`` for ``"atomic"`` or
+            ``"charge"``).
+        units (str): LAMMPS unit system (default: ``"metal"``).
+        file_name (str): Output filename (default: ``"lammps.data"``).
+        working_directory (str, optional): If given, the file is written to
+            ``<working_directory>/<file_name>``.
+        atom_type (str): LAMMPS ``atom_style`` keyword; one of ``"atomic"``
+            (default), ``"charge"``, ``"bond"``, or ``"full"``.
+    """
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
     lammps_str.el_eam_lst = cast(List[str], list(potential_elements))
     lammps_str.structure = structure

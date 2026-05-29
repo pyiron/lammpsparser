@@ -235,36 +235,44 @@ def _iter_raw_frames(
                     "natoms": n,
                     "cells": cell,
                     "indices": df["type"].array.astype(int),
-                    "forces": np.stack(
-                        [df["fx"].array, df["fy"].array, df["fz"].array], axis=1
-                    )
-                    if all(c in columns for c in ("fx", "fy", "fz"))
-                    else np.array([]),
-                    "mean_forces": np.stack(
-                        [
-                            df["f_mean_forces[1]"].array,
-                            df["f_mean_forces[2]"].array,
-                            df["f_mean_forces[3]"].array,
-                        ],
-                        axis=1,
-                    )
-                    if "f_mean_forces[1]" in columns
-                    else np.array([]),
-                    "velocities": np.stack(
-                        [df["vx"].array, df["vy"].array, df["vz"].array], axis=1
-                    )
-                    if all(c in columns for c in ("vx", "vy", "vz"))
-                    else np.array([]),
-                    "mean_velocities": np.stack(
-                        [
-                            df["f_mean_velocities[1]"].array,
-                            df["f_mean_velocities[2]"].array,
-                            df["f_mean_velocities[3]"].array,
-                        ],
-                        axis=1,
-                    )
-                    if "f_mean_velocities[1]" in columns
-                    else np.array([]),
+                    "forces": (
+                        np.stack(
+                            [df["fx"].array, df["fy"].array, df["fz"].array], axis=1
+                        )
+                        if all(c in columns for c in ("fx", "fy", "fz"))
+                        else np.array([])
+                    ),
+                    "mean_forces": (
+                        np.stack(
+                            [
+                                df["f_mean_forces[1]"].array,
+                                df["f_mean_forces[2]"].array,
+                                df["f_mean_forces[3]"].array,
+                            ],
+                            axis=1,
+                        )
+                        if "f_mean_forces[1]" in columns
+                        else np.array([])
+                    ),
+                    "velocities": (
+                        np.stack(
+                            [df["vx"].array, df["vy"].array, df["vz"].array], axis=1
+                        )
+                        if all(c in columns for c in ("vx", "vy", "vz"))
+                        else np.array([])
+                    ),
+                    "mean_velocities": (
+                        np.stack(
+                            [
+                                df["f_mean_velocities[1]"].array,
+                                df["f_mean_velocities[2]"].array,
+                                df["f_mean_velocities[3]"].array,
+                            ],
+                            axis=1,
+                        )
+                        if "f_mean_velocities[1]" in columns
+                        else np.array([])
+                    ),
                     "computes": {},
                 }
 

@@ -1,0 +1,16 @@
+channels:
+- conda-forge
+dependencies:
+- python =3.14
+- nbsphinx
+- sphinx
+- sphinx_rtd_theme
+- myst-parser
+- hatchling
+- hatch-vcs
+- ase =3.28.0
+- h5py =3.16.0
+- numpy =2.4.3
+- pandas =3.0.2
+- scipy =1.17.1
+- structuretoolkit =0.0.42

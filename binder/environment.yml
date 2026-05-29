@@ -1,6 +1,7 @@
 channels:
 - conda-forge
 dependencies:
+- python
 - ase =3.28.0
 - h5py =3.16.0
 - numpy =2.4.3

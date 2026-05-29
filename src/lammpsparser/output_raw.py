@@ -314,118 +314,30 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
         - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
         - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
     """
-    with open(file_name, "r") as f:
-        dump = DumpData()
-
-        for line in f:
-            if "ITEM: TIMESTEP" in line:
-                dump.steps.append(int(f.readline()))
-
-            elif "ITEM: BOX BOUNDS" in line:
-                c1 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                c2 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                c3 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                cell = np.concatenate([c1, c2, c3])
-                dump.cells.append(to_amat(cell))
-
-            elif "ITEM: NUMBER OF ATOMS" in line:
-                n = int(f.readline())
-                dump.natoms.append(n)
-
-            elif "ITEM: ATOMS" in line:
-                # get column names from line
-                columns = line.lstrip("ITEM: ATOMS").split()
-
-                # Read line by line of snapshot into a string buffer
-                # Than parse using pandas for speed and column acces
-                buf = StringIO()
-                for _ in range(n):
-                    buf.write(f.readline())
-                buf.seek(0)
-                df = pd.read_csv(
-                    buf,
-                    nrows=n,
-                    sep="\\s+",
-                    header=None,
-                    names=columns,
-                    engine="c",
-                )
-                df.sort_values(by="id", ignore_index=True, inplace=True)
-                # Coordinate transform lammps->pyiron
-                dump.indices.append(df["type"].array.astype(int))
-
-                dump.forces.append(
-                    np.stack([df["fx"].array, df["fy"].array, df["fz"].array], axis=1)
-                )
-                if "f_mean_forces[1]" in columns:
-                    dump.mean_forces.append(
-                        np.stack(
-                            [
-                                df["f_mean_forces[1]"].array,
-                                df["f_mean_forces[2]"].array,
-                                df["f_mean_forces[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-                if "vx" in columns and "vy" in columns and "vz" in columns:
-                    dump.velocities.append(
-                        np.stack(
-                            [
-                                df["vx"].array,
-                                df["vy"].array,
-                                df["vz"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-
-                if "f_mean_velocities[1]" in columns:
-                    dump.mean_velocities.append(
-                        np.stack(
-                            [
-                                df["f_mean_velocities[1]"].array,
-                                df["f_mean_velocities[2]"].array,
-                                df["f_mean_velocities[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-
-                if "xsu" in columns:
-                    direct_unwrapped_positions = np.stack(
-                        [
-                            df["xsu"].array,
-                            df["ysu"].array,
-                            df["zsu"].array,
-                        ],
-                        axis=1,
-                    )
-                    dump.unwrapped_positions.append(direct_unwrapped_positions)
-                    dump.positions.append(
-                        direct_unwrapped_positions
-                        - np.floor(direct_unwrapped_positions)
-                    )
-
-                if "f_mean_positions[1]" in columns:
-                    dump.mean_unwrapped_positions.append(
-                        np.stack(
-                            [
-                                df["f_mean_positions[1]"].array,
-                                df["f_mean_positions[2]"].array,
-                                df["f_mean_positions[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-                for k in columns:
-                    if k.startswith("c_"):
-                        kk = k.replace("c_", "")
-                        if kk not in dump.computes.keys():
-                            dump.computes[kk] = []
-                        dump.computes[kk].append(df[k].array)
-
-        return asdict(dump)
+    dump = DumpData()
+    for frame in _iter_raw_frames(file_name):
+        dump.steps.append(frame["steps"])
+        dump.natoms.append(frame["natoms"])
+        dump.cells.append(frame["cells"])
+        dump.indices.append(frame["indices"])
+        if len(frame["forces"]):
+            dump.forces.append(frame["forces"])
+        if len(frame["mean_forces"]):
+            dump.mean_forces.append(frame["mean_forces"])
+        if len(frame["velocities"]):
+            dump.velocities.append(frame["velocities"])
+        if len(frame["mean_velocities"]):
+            dump.mean_velocities.append(frame["mean_velocities"])
+        if len(frame["unwrapped_positions"]):
+            dump.unwrapped_positions.append(frame["unwrapped_positions"])
+            dump.positions.append(frame["positions"])
+        if len(frame["mean_unwrapped_positions"]):
+            dump.mean_unwrapped_positions.append(frame["mean_unwrapped_positions"])
+        for k, v in frame["computes"].items():
+            if k not in dump.computes:
+                dump.computes[k] = []
+            dump.computes[k].append(v)
+    return asdict(dump)
 
 
 def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:

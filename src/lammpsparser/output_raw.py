@@ -192,26 +192,26 @@ def _iter_raw_frames(
                 raise ValueError(f"Expected ITEM: ATOMS at frame {frame_index}, got: {line!r}")
             columns = line.lstrip("ITEM: ATOMS").split()
 
-            # --- read atom data ---
-            buf = StringIO()
-            for i in range(n):
-                atom_line = f.readline()
-                if not atom_line:
-                    raise ValueError(
-                        f"Truncated dump file: expected {n} atoms at frame {frame_index} "
-                        f"(step {timestep}), got {i}"
-                    )
-                buf.write(atom_line)
-            buf.seek(0)
-
-            # --- decide whether to yield this frame ---
+            # --- decide whether to process this frame ---
             in_range = (
                 frame_index >= start
                 and (stop is None or frame_index < stop)
                 and (frame_index - start) % step == 0
             )
 
+            # --- read atom data ---
             if in_range:
+                buf = StringIO()
+                for i in range(n):
+                    atom_line = f.readline()
+                    if not atom_line:
+                        raise ValueError(
+                            f"Truncated dump file: expected {n} atoms at frame {frame_index} "
+                            f"(step {timestep}), got {i}"
+                        )
+                    buf.write(atom_line)
+                buf.seek(0)
+
                 df = pd.read_csv(
                     buf,
                     nrows=n,
@@ -227,7 +227,7 @@ def _iter_raw_frames(
                     "natoms": n,
                     "cells": cell,
                     "indices": df["type"].array.astype(int),
-                    "forces": np.stack([df["fx"].array, df["fy"].array, df["fz"].array], axis=1),
+                    "forces": np.stack([df["fx"].array, df["fy"].array, df["fz"].array], axis=1) if all(c in columns for c in ("fx", "fy", "fz")) else np.array([]),
                     "mean_forces": np.stack([
                         df["f_mean_forces[1]"].array,
                         df["f_mean_forces[2]"].array,
@@ -266,6 +266,14 @@ def _iter_raw_frames(
                         frame["computes"][k.replace("c_", "")] = df[k].array
 
                 yield frame
+
+            else:
+                # skip atom lines cheaply without building a buffer
+                for _ in range(n):
+                    f.readline()
+                # early exit if we've passed stop
+                if stop is not None and frame_index >= stop:
+                    return
 
             frame_index += 1
             line = f.readline()

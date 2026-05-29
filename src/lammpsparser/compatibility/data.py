@@ -40,6 +40,7 @@ class CalcMDInput:
         rotation_matrix: 3×3 rotation matrix from the ASE to LAMMPS coordinate
             frame.  Derived automatically when ``None``.
     """
+
     temperature: Optional[Union[float, list]] = None
     pressure: Optional[Union[float, list, np.ndarray]] = None
     n_ionic_steps: int = 1
@@ -76,6 +77,7 @@ class CalcMinimizeInput:
             gradient, ``"sd"`` for steepest descent).
         rotation_matrix: 3×3 rotation matrix from the ASE to LAMMPS frame.
     """
+
     ionic_energy_tolerance: float = 0.0
     ionic_force_tolerance: float = 1e-4
     max_iter: int = 100000

@@ -7,6 +7,8 @@ from lammpsparser.output import (
     remap_indices_ase,
     _parse_dump,
     _collect_output_log,
+    iter_lammps_frames,
+    LammpsFrame,
 )
 from lammpsparser.output_raw import to_amat
 from lammpsparser.structure import UnfoldingPrism
@@ -663,6 +665,85 @@ class TestLammpsOutput(unittest.TestCase):
                 )
             # "KinEng" column is not a generic key, so it goes to hdf_lammps
             self.assertIn("KinEng", output["lammps"])
+
+
+class TestIterLammpsFrames(unittest.TestCase):
+    def setUp(self):
+        self.static_folder = os.path.abspath(os.path.join(__file__, "..", "static"))
+        self.structure = bulk("Ni", cubic=True)
+        self.potential_elements = ["Ni", "Al", "H"]
+        self.units = "metal"
+        # compatibility_output has 11 frames and uses Al repeat structure
+        self.multi_structure = bulk("Al", cubic=True).repeat([2, 2, 2])
+        self.multi_potential_elements = ["Al"]
+
+    def _full_job_dir(self):
+        return os.path.join(self.static_folder, "full_job")
+
+    def _multi_frame_dir(self):
+        return os.path.join(self.static_folder, "compatibility_output")
+
+    def test_yields_lammps_frame_instances(self):
+        frames = list(iter_lammps_frames(
+            working_directory=self._full_job_dir(),
+            structure=self.structure,
+            potential_elements=self.potential_elements,
+            units=self.units,
+        ))
+        self.assertGreater(len(frames), 0)
+        self.assertIsInstance(frames[0], LammpsFrame)
+
+    def test_frame_has_required_fields(self):
+        frame = next(iter(iter_lammps_frames(
+            working_directory=self._full_job_dir(),
+            structure=self.structure,
+            potential_elements=self.potential_elements,
+            units=self.units,
+        )))
+        self.assertIsInstance(frame.step, int)
+        self.assertEqual(frame.cell.shape, (3, 3))
+        self.assertEqual(frame.positions.ndim, 2)
+        self.assertEqual(frame.positions.shape[1], 3)
+        self.assertEqual(frame.forces.ndim, 2)
+        self.assertEqual(frame.indices.ndim, 1)
+
+    def test_equivalence_with_batch_parser(self):
+        """Streaming all frames must produce the same positions and forces as parse_lammps_output_files."""
+        frames = list(iter_lammps_frames(
+            working_directory=self._full_job_dir(),
+            structure=self.structure,
+            potential_elements=self.potential_elements,
+            units=self.units,
+        ))
+        batch = parse_lammps_output_files(
+            working_directory=self._full_job_dir(),
+            structure=self.structure,
+            potential_elements=self.potential_elements,
+            units=self.units,
+        )
+        streamed_positions = np.stack([f.positions for f in frames])
+        np.testing.assert_allclose(streamed_positions, batch["generic"]["positions"], rtol=1e-10)
+        streamed_forces = np.stack([f.forces for f in frames])
+        np.testing.assert_allclose(streamed_forces, batch["generic"]["forces"], rtol=1e-10)
+
+    def test_start_stop_slicing(self):
+        all_frames = list(iter_lammps_frames(
+            working_directory=self._multi_frame_dir(),
+            structure=self.multi_structure,
+            potential_elements=self.multi_potential_elements,
+            units=self.units,
+        ))
+        sliced = list(iter_lammps_frames(
+            working_directory=self._multi_frame_dir(),
+            structure=self.multi_structure,
+            potential_elements=self.multi_potential_elements,
+            units=self.units,
+            start=1,
+            stop=3,
+        ))
+        self.assertEqual(len(sliced), 2)
+        np.testing.assert_array_equal(sliced[0].positions, all_frames[1].positions)
+        np.testing.assert_array_equal(sliced[1].positions, all_frames[2].positions)
 
 
 if __name__ == "__main__":

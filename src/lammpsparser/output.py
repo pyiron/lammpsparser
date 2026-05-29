@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -20,12 +20,18 @@ from lammpsparser.units import UnitConverter
 
 @dataclass
 class LammpsFrame:
-    """A single parsed, unit-converted frame from a LAMMPS dump file."""
+    """A single parsed, unit-converted frame from a LAMMPS dump file.
+
+    positions contains wrapped Cartesian coordinates (atoms folded back into
+    the unit cell). For mean-square-displacement or other analyses requiring
+    continuous trajectories, use parse_lammps_output_files instead, which
+    also provides unwrapped_positions.
+    """
     step: int
     cell: np.ndarray
     positions: np.ndarray
-    forces: np.ndarray
     indices: np.ndarray
+    forces: np.ndarray = field(default_factory=lambda: np.array([]).reshape(0, 3))
     velocities: Optional[np.ndarray] = None
     computes: Optional[Dict[str, np.ndarray]] = None
 
@@ -498,7 +504,10 @@ def iter_lammps_frames(
 
     Yields:
         LammpsFrame: One frame with fields step, cell, positions, forces,
-        indices, velocities (or None), computes (or None).
+        indices, velocities (or None), computes (or None). positions contains
+        wrapped Cartesian coordinates (atoms folded into the unit cell); for
+        analyses that need continuity across periodic boundaries (e.g. MSD),
+        use parse_lammps_output_files which also returns unwrapped_positions.
 
     Raises:
         FileNotFoundError: If the dump file does not exist.
@@ -525,8 +534,13 @@ def iter_lammps_frames(
         )
         positions = convert_units(positions, label="positions")
 
-        forces = np.matmul(raw["forces"], rotation_lammps2orig)
-        forces = convert_units(forces, label="forces")
+        if len(raw["forces"]):
+            forces = convert_units(
+                np.matmul(raw["forces"], rotation_lammps2orig),
+                label="forces",
+            )
+        else:
+            forces = np.array([]).reshape(0, 3)
 
         indices = remap_indices_funct(
             lammps_indices=raw["indices"],
@@ -552,8 +566,8 @@ def iter_lammps_frames(
             step=int(raw["steps"]),
             cell=cell,
             positions=positions,
-            forces=forces,
             indices=indices,
+            forces=forces,
             velocities=velocities,
             computes=computes,
         )

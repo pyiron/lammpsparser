@@ -129,7 +129,7 @@ def parse_raw_dump_from_h5md(file_name: str) -> Dict:
 
 
 def _iter_raw_frames(
-    file_name: str,
+    file_name: str = "dump.out",
     start: int = 0,
     stop: Optional[int] = None,
     step: int = 1,
@@ -137,19 +137,40 @@ def _iter_raw_frames(
     """
     Yield one raw frame dict at a time from a LAMMPS text dump file.
 
+    The file must have been created with a ``dump … custom`` command that writes
+    at least the columns ``id``, ``type``, ``xsu``, ``ysu``, ``zsu``, ``fx``,
+    ``fy``, ``fz``.  Optional columns ``vx``/``vy``/``vz`` (velocities),
+    ``f_mean_forces[1-3]``, ``f_mean_velocities[1-3]``, ``f_mean_positions[1-3]``
+    (time-averaged fixes), and any per-atom compute columns starting with ``c_``
+    are handled automatically.
+
+    Coordinates are expected as scaled (fractional) unwrapped positions
+    (``xsu``/``ysu``/``zsu``).  Wrapped fractional positions are derived by
+    taking ``xsu - floor(xsu)``.
+
     Each yielded dict has the same keys as DumpData fields, but values are
     for a single frame (scalars or arrays, not lists).
 
     Args:
-        file_name: Path to the LAMMPS text dump file.
-        start: First frame index to yield (0-based, default 0).
-        stop: Stop before this frame index. None means read to end.
-        step: Yield every ``step``-th frame (default 1).
+        file_name (str): Path to the LAMMPS text dump file (typically ``dump.out``).
+        start (int): First frame index to yield (0-based, default 0).
+        stop (int, optional): Stop before this frame index. None means read to end.
+        step (int): Yield every ``step``-th frame (default 1).
 
     Yields:
-        dict with keys: steps, natoms, cells, indices, forces, mean_forces,
-        velocities, mean_velocities, unwrapped_positions,
-        mean_unwrapped_positions, positions, computes.
+        dict with keys: 
+        - ``"steps"`` (list of int): Simulation timestep indices.
+        - ``"natoms"`` (list of int): Number of atoms at each snapshot.
+        - ``"cells"`` (list of list): 3×3 cell matrices (one per snapshot).
+        - ``"indices"`` (list of numpy.ndarray): Integer LAMMPS atom-type indices (1-based).
+        - ``"forces"`` (list of numpy.ndarray): Per-atom force vectors, shape ``(N, 3)``.
+        - ``"mean_forces"`` (list of numpy.ndarray): Time-averaged forces from ``fix ave/atom``.
+        - ``"velocities"`` (list of numpy.ndarray): Per-atom velocity vectors, shape ``(N, 3)``.
+        - ``"mean_velocities"`` (list of numpy.ndarray): Time-averaged velocities.
+        - ``"unwrapped_positions"`` (list of numpy.ndarray): Unwrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"mean_unwrapped_positions"`` (list of numpy.ndarray): Time-averaged unwrapped positions.
+        - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
 
     Raises:
         ValueError: If a frame is malformed or the file is truncated mid-frame.

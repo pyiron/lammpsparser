@@ -158,7 +158,7 @@ def _iter_raw_frames(
         step (int): Yield every ``step``-th frame (default 1).
 
     Yields:
-        dict with keys: 
+        dict with keys:
         - ``"steps"`` (list of int): Simulation timestep indices.
         - ``"natoms"`` (list of int): Number of atoms at each snapshot.
         - ``"cells"`` (list of list): 3×3 cell matrices (one per snapshot).

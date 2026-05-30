@@ -785,9 +785,7 @@ class TestIterLammpsFrames(unittest.TestCase):
             "1 1\n2 1\n"
         )
         structure = bulk("Ni", cubic=True)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".out", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".out", delete=False) as f:
             f.write(dump_content)
             fname = f.name
         try:

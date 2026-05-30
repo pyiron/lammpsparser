@@ -1,6 +1,7 @@
 from ase.build import bulk
 import numpy as np
 import os
+import tempfile
 import unittest
 from lammpsparser import parse_lammps_output_files
 from lammpsparser.output import (
@@ -10,7 +11,7 @@ from lammpsparser.output import (
     iter_lammps_frames,
     LammpsFrame,
 )
-from lammpsparser.output_raw import to_amat
+from lammpsparser.output_raw import to_amat, _iter_raw_frames, parse_raw_lammps_log
 from lammpsparser.structure import UnfoldingPrism
 
 
@@ -760,6 +761,246 @@ class TestIterLammpsFrames(unittest.TestCase):
         self.assertEqual(len(sliced), 2)
         np.testing.assert_array_equal(sliced[0].positions, all_frames[1].positions)
         np.testing.assert_array_equal(sliced[1].positions, all_frames[2].positions)
+
+    def test_file_not_found_raises(self):
+        with self.assertRaises(FileNotFoundError) as ctx:
+            list(
+                iter_lammps_frames(
+                    working_directory="/nonexistent/path",
+                    structure=self.structure,
+                    potential_elements=self.potential_elements,
+                    units=self.units,
+                )
+            )
+        self.assertIn("Dump file not found", str(ctx.exception))
+
+    def test_empty_positions_and_forces_when_no_xsu_columns(self):
+        # Dump without xsu/ysu/zsu and without fx/fy/fz → positions and forces are empty arrays.
+        dump_content = (
+            "ITEM: TIMESTEP\n0\n"
+            "ITEM: NUMBER OF ATOMS\n2\n"
+            "ITEM: BOX BOUNDS pp pp pp\n"
+            "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+            "ITEM: ATOMS id type\n"
+            "1 1\n2 1\n"
+        )
+        structure = bulk("Ni", cubic=True)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".out", delete=False
+        ) as f:
+            f.write(dump_content)
+            fname = f.name
+        try:
+            frames = list(
+                iter_lammps_frames(
+                    working_directory=os.path.dirname(fname),
+                    structure=structure,
+                    potential_elements=["Ni"],
+                    units="metal",
+                    dump_out_file_name=os.path.basename(fname),
+                )
+            )
+            self.assertEqual(len(frames), 1)
+            self.assertEqual(frames[0].positions.shape, (0, 3))
+            self.assertEqual(frames[0].forces.shape, (0, 3))
+        finally:
+            os.unlink(fname)
+
+    def test_computes_are_yielded(self):
+        # mean_dump/dump.out has a c_test column → computes dict must be populated.
+        structure = bulk("Al", a=3.52)
+        frames = list(
+            iter_lammps_frames(
+                working_directory=os.path.join(self.static_folder, "mean_dump"),
+                structure=structure,
+                potential_elements=["Al"],
+                units="metal",
+            )
+        )
+        self.assertGreater(len(frames), 0)
+        self.assertIsNotNone(frames[0].computes)
+        self.assertIn("test", frames[0].computes)
+
+    def test_step_slicing(self):
+        all_frames = list(
+            iter_lammps_frames(
+                working_directory=self._multi_frame_dir(),
+                structure=self.multi_structure,
+                potential_elements=self.multi_potential_elements,
+                units=self.units,
+            )
+        )
+        every_other = list(
+            iter_lammps_frames(
+                working_directory=self._multi_frame_dir(),
+                structure=self.multi_structure,
+                potential_elements=self.multi_potential_elements,
+                units=self.units,
+                step=2,
+            )
+        )
+        expected_count = len(range(0, len(all_frames), 2))
+        self.assertEqual(len(every_other), expected_count)
+        np.testing.assert_array_equal(every_other[0].positions, all_frames[0].positions)
+        np.testing.assert_array_equal(every_other[1].positions, all_frames[2].positions)
+
+
+_MINIMAL_FRAME = (
+    "ITEM: TIMESTEP\n0\n"
+    "ITEM: NUMBER OF ATOMS\n1\n"
+    "ITEM: BOX BOUNDS pp pp pp\n"
+    "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+    "ITEM: ATOMS id type xsu ysu zsu fx fy fz\n"
+    "1 1 0.0 0.0 0.0 0.0 0.0 0.0\n"
+)
+
+
+def _write_tmp(content: str) -> str:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".out", delete=False) as f:
+        f.write(content)
+        return f.name
+
+
+class TestIterRawFrames(unittest.TestCase):
+    def test_garbage_lines_before_timestep_are_skipped(self):
+        # Lines 162-163: non-TIMESTEP content before a valid frame must be silently skipped.
+        content = "# comment\nsome garbage\n" + _MINIMAL_FRAME
+        fname = _write_tmp(content)
+        try:
+            frames = list(_iter_raw_frames(fname))
+            self.assertEqual(len(frames), 1)
+            self.assertEqual(frames[0]["steps"], 0)
+        finally:
+            os.unlink(fname)
+
+    def test_malformed_timestep_raises(self):
+        # Lines 168-169: non-integer timestep must raise ValueError.
+        content = "ITEM: TIMESTEP\nnot_an_int\n"
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("Malformed TIMESTEP", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+    def test_missing_number_of_atoms_header_raises(self):
+        # Line 173: missing "NUMBER OF ATOMS" section header must raise ValueError.
+        content = "ITEM: TIMESTEP\n0\nITEM: WRONG\n1\n"
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("NUMBER OF ATOMS", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+    def test_malformed_number_of_atoms_raises(self):
+        # Lines 178-179: non-integer atom count must raise ValueError.
+        content = "ITEM: TIMESTEP\n0\nITEM: NUMBER OF ATOMS\nnot_a_number\n"
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("NUMBER OF ATOMS", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+    def test_missing_box_bounds_header_raises(self):
+        # Line 185: missing "BOX BOUNDS" section header must raise ValueError.
+        content = (
+            "ITEM: TIMESTEP\n0\n"
+            "ITEM: NUMBER OF ATOMS\n1\n"
+            "ITEM: WRONG\n"
+            "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+        )
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("BOX BOUNDS", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+    def test_missing_atoms_header_raises(self):
+        # Line 198: missing "ITEM: ATOMS" section header must raise ValueError.
+        content = (
+            "ITEM: TIMESTEP\n0\n"
+            "ITEM: NUMBER OF ATOMS\n1\n"
+            "ITEM: BOX BOUNDS pp pp pp\n"
+            "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+            "ITEM: WRONG id type\n"
+            "1 1\n"
+        )
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("ITEM: ATOMS", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+    def test_no_xsu_columns_yields_empty_positions(self):
+        # Lines 286-287: dump without xsu/ysu/zsu must yield empty positions array.
+        content = (
+            "ITEM: TIMESTEP\n0\n"
+            "ITEM: NUMBER OF ATOMS\n1\n"
+            "ITEM: BOX BOUNDS pp pp pp\n"
+            "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+            "ITEM: ATOMS id type fx fy fz\n"
+            "1 1 0.0 0.0 0.0\n"
+        )
+        fname = _write_tmp(content)
+        try:
+            frames = list(_iter_raw_frames(fname))
+            self.assertEqual(len(frames), 1)
+            self.assertEqual(len(frames[0]["positions"]), 0)
+            self.assertEqual(len(frames[0]["unwrapped_positions"]), 0)
+        finally:
+            os.unlink(fname)
+
+    def test_truncated_atom_data_raises(self):
+        # Lines 216-219: file truncated mid-frame must raise ValueError.
+        content = (
+            "ITEM: TIMESTEP\n0\n"
+            "ITEM: NUMBER OF ATOMS\n3\n"
+            "ITEM: BOX BOUNDS pp pp pp\n"
+            "0.0 3.52\n0.0 3.52\n0.0 3.52\n"
+            "ITEM: ATOMS id type xsu ysu zsu fx fy fz\n"
+            "1 1 0.0 0.0 0.0 0.0 0.0 0.0\n"
+            # only 1 of 3 atom lines present
+        )
+        fname = _write_tmp(content)
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                list(_iter_raw_frames(fname))
+            self.assertIn("Truncated", str(ctx.exception))
+        finally:
+            os.unlink(fname)
+
+
+class TestParseRawLammpsLog(unittest.TestCase):
+    def test_warning_in_thermo_block_is_forwarded(self):
+        # Line 424: WARNING: lines inside a thermo block must be issued as Python warnings.
+        log_content = (
+            "LAMMPS log\n"
+            "Step Temp PotEng TotEng Volume\n"
+            "0 0.0 -17.8 -17.8 43.6\n"
+            "WARNING: some lammps warning (src/foo.cpp:42)\n"
+            "1 0.0 -17.8 -17.8 43.6\n"
+            "Loop time of 0.0 on 1 procs for 1 steps with 4 atoms\n"
+        )
+        import warnings
+
+        fname = _write_tmp(log_content)
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                df = parse_raw_lammps_log(fname)
+            self.assertTrue(any("warning" in str(w.message).lower() for w in caught))
+            self.assertEqual(len(df), 2)
+        finally:
+            os.unlink(fname)
 
 
 if __name__ == "__main__":

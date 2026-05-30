@@ -510,6 +510,11 @@ def iter_lammps_frames(
         analyses that need continuity across periodic boundaries (e.g. MSD),
         use parse_lammps_output_files which also returns unwrapped_positions.
 
+        Note:
+            Time-averaged fix fields (mean_forces, mean_velocities,
+            mean_unwrapped_positions from ``fix ave/atom``) are not exposed
+            on LammpsFrame. Use parse_lammps_output_files for those fields.
+
     Raises:
         FileNotFoundError: If the dump file does not exist.
         ValueError: If a frame is malformed or the file is truncated.
@@ -529,11 +534,14 @@ def iter_lammps_frames(
     for raw in _iter_raw_frames(file_path, start=start, stop=stop, step=step):
         cell = np.array(prism.unfold_cell(cell=raw["cells"]))
 
-        positions_frac = raw["positions"]
-        positions = np.matmul(
-            np.matmul(positions_frac, np.array(raw["cells"])), rotation_lammps2orig
-        )
-        positions = convert_units(positions, label="positions")
+        if len(raw["positions"]):
+            positions_frac = raw["positions"]
+            positions = np.matmul(
+                np.matmul(positions_frac, np.array(raw["cells"])), rotation_lammps2orig
+            )
+            positions = convert_units(positions, label="positions")
+        else:
+            positions = np.array([]).reshape(0, 3)
 
         if len(raw["forces"]):
             forces = convert_units(

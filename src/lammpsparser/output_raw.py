@@ -198,7 +198,7 @@ def _iter_raw_frames(
                 raise ValueError(
                     f"Expected ITEM: ATOMS at frame {frame_index}, got: {line!r}"
                 )
-            columns = line.lstrip("ITEM: ATOMS").split()
+            columns = line.split()[2:]
 
             # --- decide whether to process this frame ---
             in_range = (

@@ -219,13 +219,13 @@ jobs:
         run: |
           cp .ci_support/environment.yml environment.yml
           tail --lines=+4 .ci_support/environment-integration-openmpi.yml >> environment.yml
+          echo -e "channels:\n  - conda-forge\n" > .condarc
       - name: Setup Mambaforge
         uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: "3.13"
           miniforge-version: latest
-          channels: conda-forge
-          conda-remove-defaults: "true"
+          condarc-file: .condarc
           environment-file: environment.yml
       - name: Test
         shell: bash -l {0}
@@ -242,13 +242,13 @@ jobs:
         run: |
           cp .ci_support/environment.yml environment.yml
           tail --lines=+4 .ci_support/environment-integration-mpich.yml >> environment.yml
+          echo -e "channels:\n  - conda-forge\n" > .condarc
       - name: Setup Mambaforge
         uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: "3.13"
           miniforge-version: latest
-          channels: conda-forge
-          conda-remove-defaults: "true"
+          condarc-file: .condarc
           environment-file: environment.yml
       - name: Test
         shell: bash -l {0}
@@ -278,7 +278,7 @@ jobs:
         python -m unittest discover tests
 
   autobot:
-    needs: [uv_check, unittest_old, unittest_matrix, notebooks, pip_check, coverage]
+    needs: [uv_check, unittest_old, unittest_matrix, notebooks, pip_check, coverage, integration_mpich, integration_openmpi]
     permissions:
       contents: write
       pull-requests: write

@@ -34,12 +34,11 @@ class TestLammpsIntegration(unittest.TestCase):
             resource_path=self.static_path,
         )
         self.working_directory = os.path.abspath("lmp_working_directory")
-    
+
     def tearDown(self):
         self.working_directory
         if os.path.exists(lmp_working_directory):
             shutil.rmtree(lmp_working_directory)
-
 
     def test_lammps_integration(self):
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(

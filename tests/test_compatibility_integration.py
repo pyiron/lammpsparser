@@ -1,9 +1,12 @@
 import os
 import unittest
+
 import numpy as np
 from ase.build import bulk
 from ase.constraints import FixAtoms
+
 from lammpsparser.compatibility.file import lammps_file_interface_function
+from lammpsparser.potential import get_potential_by_name
 
 try:
     import lammps
@@ -25,7 +28,10 @@ class TestLammpsIntegration(unittest.TestCase):
         )
         structure.set_constraint(c)
         self.structure = structure
-        self.potential = "1999--Mishin-Y--Al--LAMMPS--ipr1"
+        self.potential = get_potential_by_name(
+            potential_name="1999--Mishin-Y--Al--LAMMPS--ipr1",
+            resource_path=self.static_path,
+        )
 
     def test_lammps_integration(self):
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(

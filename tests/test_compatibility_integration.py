@@ -20,7 +20,9 @@ class TestLammpsIntegration(unittest.TestCase):
             os.path.join("..", os.path.dirname(__file__), "static")
         )
         structure = bulk("Al", cubic=True)
-        c = FixAtoms(indices=[atom.index for i, atom in enumerate(structure) if i % 2 == 0])
+        c = FixAtoms(
+            indices=[atom.index for i, atom in enumerate(structure) if i % 2 == 0]
+        )
         structure.set_constraint(c)
         self.structure = structure
         self.potential = "1999--Mishin-Y--Al--LAMMPS--ipr1"
@@ -31,9 +33,14 @@ class TestLammpsIntegration(unittest.TestCase):
             structure=self.structure,
             potential=self.potential,
             calc_mode="md",
-            calc_kwargs={"pressure": 0.0, "temperature":500.0, "seed":12345, "n_ionic_steps": 1000},
+            calc_kwargs={
+                "pressure": 0.0,
+                "temperature": 500.0,
+                "seed": 12345,
+                "n_ionic_steps": 1000,
+            },
             units="metal",
             lmp_command="lmp_mpi -in lmp.in",
         )
-        self.assertTrue(np.sum(parsed_output["generic"]["forces"][:,0]) == 0.0)
-        self.assertTrue(np.sum(parsed_output["generic"]["forces"][:,2]) == 0.0)
+        self.assertTrue(np.sum(parsed_output["generic"]["forces"][:, 0]) == 0.0)
+        self.assertTrue(np.sum(parsed_output["generic"]["forces"][:, 2]) == 0.0)

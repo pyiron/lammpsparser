@@ -21,7 +21,7 @@ except ImportError:
 class TestLammpsIntegration(unittest.TestCase):
     def setUp(self):
         self.static_path = os.path.abspath(
-            os.path.join("..", os.path.dirname(__file__), "static")
+            os.path.join("..", os.path.dirname(__file__), "static", "potential")
         )
         structure = bulk("Al", cubic=True)
         c = FixAtoms(

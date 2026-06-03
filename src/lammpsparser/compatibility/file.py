@@ -149,7 +149,7 @@ def lammps_file_interface_function(
     ]
 
     if calc_mode == "static":
-        lmp_str_lst += [
+        lmp_str_constraint_lst = [
             k + " " + v
             for k, v in set_selective_dynamics(
                 structure=structure, calc_md=False
@@ -158,11 +158,11 @@ def lammps_file_interface_function(
         lmp_str_tmp_lst = calc_static()
         lmp_str_lst = _modify_input_dict(
             input_control_file=input_control_file,
-            lmp_str_lst=lmp_str_lst + lmp_str_tmp_lst[:-1],
+            lmp_str_lst=lmp_str_lst + lmp_str_tmp_lst[:-1] + lmp_str_constraint_lst,
         )
         lmp_str_lst.append(lmp_str_tmp_lst[-1])
     elif calc_mode == "md":
-        lmp_str_lst += [
+        lmp_str_constraint_lst = [
             k + " " + v
             for k, v in set_selective_dynamics(
                 structure=structure, calc_md=True
@@ -178,14 +178,14 @@ def lammps_file_interface_function(
         lmp_str_lst += calc_md(**calc_kwargs)
         lmp_str_lst = _modify_input_dict(
             input_control_file=input_control_file,
-            lmp_str_lst=lmp_str_lst,
+            lmp_str_lst=lmp_str_lst + lmp_str_constraint_lst,
         )
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
         lmp_str_lst += ["run {} ".format(n_ionic_steps)]
     elif calc_mode == "minimize":
         calc_kwargs["units"] = units
-        lmp_str_lst += [
+        lmp_str_constraint_lst = [
             k + " " + v
             for k, v in set_selective_dynamics(
                 structure=structure, calc_md=False
@@ -194,7 +194,7 @@ def lammps_file_interface_function(
         lmp_str_tmp_lst, structure = calc_minimize(structure=structure, **calc_kwargs)
         lmp_str_lst = _modify_input_dict(
             input_control_file=input_control_file,
-            lmp_str_lst=lmp_str_lst + lmp_str_tmp_lst[:-1],
+            lmp_str_lst=lmp_str_lst + lmp_str_tmp_lst[:-1] + lmp_str_constraint_lst,
         )
         lmp_str_lst.append(lmp_str_tmp_lst[-1])
     else:

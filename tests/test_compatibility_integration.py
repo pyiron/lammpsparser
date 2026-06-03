@@ -1,19 +1,12 @@
 import os
 import unittest
+import lammps
 import numpy as np
 from ase.build import bulk
 from ase.constraints import FixAtoms
-
-try:
-    import lammps
-    from lammpsparser.compatibility.lammps import lammps_file_interface_function
-
-    skip_lammps_test = False
-except ImportError:
-    skip_lammps_test = True
+from lammpsparser.compatibility.lammps import lammps_file_interface_function
 
 
-@unittest.skipIf(skip_lammps_test, "LAMMPS executable not available")
 class TestLammpsIntegration(unittest.TestCase):
     def setUp(self):
         self.static_path = os.path.abspath(

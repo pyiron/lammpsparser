@@ -4,7 +4,11 @@ from lammpsparser.compatibility.file import (
     lammps_file_initialization,
     lammps_file_interface_function,
 )
-from lammpsparser.output import parse_lammps_output as parse_lammps_output_files
+from lammpsparser.output import (
+    iter_lammps_frames,
+    LammpsFrame,
+    parse_lammps_output as parse_lammps_output_files,
+)
 from lammpsparser.potential import (
     get_potential_by_name,
     get_potential_dataframe,
@@ -30,6 +34,8 @@ __all__ = [
     "calc_static",
     "get_potential_by_name",
     "get_potential_dataframe",
+    "iter_lammps_frames",
+    "LammpsFrame",
     "lammps_file_initialization",
     "lammps_file_interface_function",
     "parse_lammps_output_files",

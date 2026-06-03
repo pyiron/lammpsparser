@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import asdict, dataclass, field
 from io import StringIO
-from typing import Dict, List, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -128,6 +128,215 @@ def parse_raw_dump_from_h5md(file_name: str) -> Dict:
     }
 
 
+def _iter_raw_frames(
+    file_name: str = "dump.out",
+    start: int = 0,
+    stop: Optional[int] = None,
+    step: int = 1,
+) -> Iterator[Dict]:
+    """
+    Yield one raw frame dict at a time from a LAMMPS text dump file.
+
+    The file must have been created with a ``dump … custom`` command that writes
+    at least the columns ``id``, ``type``, ``xsu``, ``ysu``, ``zsu``, ``fx``,
+    ``fy``, ``fz``.  Optional columns ``vx``/``vy``/``vz`` (velocities),
+    ``f_mean_forces[1-3]``, ``f_mean_velocities[1-3]``, ``f_mean_positions[1-3]``
+    (time-averaged fixes), and any per-atom compute columns starting with ``c_``
+    are handled automatically.
+
+    Coordinates are expected as scaled (fractional) unwrapped positions
+    (``xsu``/``ysu``/``zsu``).  Wrapped fractional positions are derived by
+    taking ``xsu - floor(xsu)``.
+
+    Each yielded dict has the same keys as DumpData fields, but values are
+    for a single frame (scalars or arrays, not lists).
+
+    Args:
+        file_name (str): Path to the LAMMPS text dump file (typically ``dump.out``).
+        start (int): First frame index to yield (0-based, default 0).
+        stop (int, optional): Stop before this frame index. None means read to end.
+        step (int): Yield every ``step``-th frame (default 1).
+
+    Yields:
+        dict with keys:
+        - ``"steps"`` (list of int): Simulation timestep indices.
+        - ``"natoms"`` (list of int): Number of atoms at each snapshot.
+        - ``"cells"`` (list of list): 3×3 cell matrices (one per snapshot).
+        - ``"indices"`` (list of numpy.ndarray): Integer LAMMPS atom-type indices (1-based).
+        - ``"forces"`` (list of numpy.ndarray): Per-atom force vectors, shape ``(N, 3)``.
+        - ``"mean_forces"`` (list of numpy.ndarray): Time-averaged forces from ``fix ave/atom``.
+        - ``"velocities"`` (list of numpy.ndarray): Per-atom velocity vectors, shape ``(N, 3)``.
+        - ``"mean_velocities"`` (list of numpy.ndarray): Time-averaged velocities.
+        - ``"unwrapped_positions"`` (list of numpy.ndarray): Unwrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"mean_unwrapped_positions"`` (list of numpy.ndarray): Time-averaged unwrapped positions.
+        - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
+        - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
+
+    Raises:
+        ValueError: If a frame is malformed or the file is truncated mid-frame.
+    """
+    frame_index = 0
+    with open(file_name, "r") as f:
+        line = f.readline()
+        while line:
+            if "ITEM: TIMESTEP" not in line:
+                line = f.readline()
+                continue
+
+            # --- read header ---
+            try:
+                timestep = int(f.readline())
+            except ValueError as e:
+                raise ValueError(f"Malformed TIMESTEP at frame {frame_index}") from e
+
+            line = f.readline()
+            if "ITEM: NUMBER OF ATOMS" not in line:
+                raise ValueError(
+                    f"Expected NUMBER OF ATOMS at frame {frame_index}, got: {line!r}"
+                )
+            try:
+                n = int(f.readline())
+            except ValueError as e:
+                raise ValueError(
+                    f"Malformed NUMBER OF ATOMS at frame {frame_index}"
+                ) from e
+
+            line = f.readline()
+            if "ITEM: BOX BOUNDS" not in line:
+                raise ValueError(
+                    f"Expected BOX BOUNDS at frame {frame_index}, got: {line!r}"
+                )
+            try:
+                c1 = np.fromstring(f.readline(), dtype=float, sep=" ")
+                c2 = np.fromstring(f.readline(), dtype=float, sep=" ")
+                c3 = np.fromstring(f.readline(), dtype=float, sep=" ")
+            except Exception as e:
+                raise ValueError(f"Malformed BOX BOUNDS at frame {frame_index}") from e
+            cell = to_amat(np.concatenate([c1, c2, c3]))
+
+            line = f.readline()
+            if "ITEM: ATOMS" not in line:
+                raise ValueError(
+                    f"Expected ITEM: ATOMS at frame {frame_index}, got: {line!r}"
+                )
+            columns = line.split()[2:]
+
+            # --- decide whether to process this frame ---
+            in_range = (
+                frame_index >= start
+                and (stop is None or frame_index < stop)
+                and (frame_index - start) % step == 0
+            )
+
+            # --- read atom data ---
+            if in_range:
+                buf = StringIO()
+                for i in range(n):
+                    atom_line = f.readline()
+                    if not atom_line:
+                        raise ValueError(
+                            f"Truncated dump file: expected {n} atoms at frame {frame_index} "
+                            f"(step {timestep}), got {i}"
+                        )
+                    buf.write(atom_line)
+                buf.seek(0)
+
+                df = pd.read_csv(
+                    buf,
+                    nrows=n,
+                    sep="\\s+",
+                    header=None,
+                    names=columns,
+                    engine="c",
+                )
+                df.sort_values(by="id", ignore_index=True, inplace=True)
+
+                frame: Dict = {
+                    "steps": timestep,
+                    "natoms": n,
+                    "cells": cell,
+                    "indices": df["type"].array.astype(int),
+                    "forces": (
+                        np.stack(
+                            [df["fx"].array, df["fy"].array, df["fz"].array], axis=1
+                        )
+                        if all(c in columns for c in ("fx", "fy", "fz"))
+                        else np.array([])
+                    ),
+                    "mean_forces": (
+                        np.stack(
+                            [
+                                df["f_mean_forces[1]"].array,
+                                df["f_mean_forces[2]"].array,
+                                df["f_mean_forces[3]"].array,
+                            ],
+                            axis=1,
+                        )
+                        if "f_mean_forces[1]" in columns
+                        else np.array([])
+                    ),
+                    "velocities": (
+                        np.stack(
+                            [df["vx"].array, df["vy"].array, df["vz"].array], axis=1
+                        )
+                        if all(c in columns for c in ("vx", "vy", "vz"))
+                        else np.array([])
+                    ),
+                    "mean_velocities": (
+                        np.stack(
+                            [
+                                df["f_mean_velocities[1]"].array,
+                                df["f_mean_velocities[2]"].array,
+                                df["f_mean_velocities[3]"].array,
+                            ],
+                            axis=1,
+                        )
+                        if "f_mean_velocities[1]" in columns
+                        else np.array([])
+                    ),
+                    "computes": {},
+                }
+
+                if "xsu" in columns:
+                    direct = np.stack(
+                        [df["xsu"].array, df["ysu"].array, df["zsu"].array], axis=1
+                    )
+                    frame["unwrapped_positions"] = direct
+                    frame["positions"] = direct - np.floor(direct)
+                else:
+                    frame["unwrapped_positions"] = np.array([])
+                    frame["positions"] = np.array([])
+
+                if "f_mean_positions[1]" in columns:
+                    frame["mean_unwrapped_positions"] = np.stack(
+                        [
+                            df["f_mean_positions[1]"].array,
+                            df["f_mean_positions[2]"].array,
+                            df["f_mean_positions[3]"].array,
+                        ],
+                        axis=1,
+                    )
+                else:
+                    frame["mean_unwrapped_positions"] = np.array([])
+
+                for k in columns:
+                    if k.startswith("c_"):
+                        frame["computes"][k.replace("c_", "")] = df[k].array
+
+                yield frame
+
+            else:
+                # skip atom lines cheaply without building a buffer
+                for _ in range(n):
+                    f.readline()
+                # early exit if we've passed stop
+                if stop is not None and frame_index >= stop:
+                    return
+
+            frame_index += 1
+            line = f.readline()
+
+
 def parse_raw_dump_from_text(file_name: str) -> Dict:
     """
     Parse a LAMMPS custom text dump file into a structured dictionary.
@@ -163,118 +372,30 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
         - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
         - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
     """
-    with open(file_name, "r") as f:
-        dump = DumpData()
-
-        for line in f:
-            if "ITEM: TIMESTEP" in line:
-                dump.steps.append(int(f.readline()))
-
-            elif "ITEM: BOX BOUNDS" in line:
-                c1 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                c2 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                c3 = np.fromstring(f.readline(), dtype=float, sep=" ")
-                cell = np.concatenate([c1, c2, c3])
-                dump.cells.append(to_amat(cell))
-
-            elif "ITEM: NUMBER OF ATOMS" in line:
-                n = int(f.readline())
-                dump.natoms.append(n)
-
-            elif "ITEM: ATOMS" in line:
-                # get column names from line
-                columns = line.lstrip("ITEM: ATOMS").split()
-
-                # Read line by line of snapshot into a string buffer
-                # Than parse using pandas for speed and column acces
-                buf = StringIO()
-                for _ in range(n):
-                    buf.write(f.readline())
-                buf.seek(0)
-                df = pd.read_csv(
-                    buf,
-                    nrows=n,
-                    sep="\\s+",
-                    header=None,
-                    names=columns,
-                    engine="c",
-                )
-                df.sort_values(by="id", ignore_index=True, inplace=True)
-                # Coordinate transform lammps->pyiron
-                dump.indices.append(df["type"].array.astype(int))
-
-                dump.forces.append(
-                    np.stack([df["fx"].array, df["fy"].array, df["fz"].array], axis=1)
-                )
-                if "f_mean_forces[1]" in columns:
-                    dump.mean_forces.append(
-                        np.stack(
-                            [
-                                df["f_mean_forces[1]"].array,
-                                df["f_mean_forces[2]"].array,
-                                df["f_mean_forces[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-                if "vx" in columns and "vy" in columns and "vz" in columns:
-                    dump.velocities.append(
-                        np.stack(
-                            [
-                                df["vx"].array,
-                                df["vy"].array,
-                                df["vz"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-
-                if "f_mean_velocities[1]" in columns:
-                    dump.mean_velocities.append(
-                        np.stack(
-                            [
-                                df["f_mean_velocities[1]"].array,
-                                df["f_mean_velocities[2]"].array,
-                                df["f_mean_velocities[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-
-                if "xsu" in columns:
-                    direct_unwrapped_positions = np.stack(
-                        [
-                            df["xsu"].array,
-                            df["ysu"].array,
-                            df["zsu"].array,
-                        ],
-                        axis=1,
-                    )
-                    dump.unwrapped_positions.append(direct_unwrapped_positions)
-                    dump.positions.append(
-                        direct_unwrapped_positions
-                        - np.floor(direct_unwrapped_positions)
-                    )
-
-                if "f_mean_positions[1]" in columns:
-                    dump.mean_unwrapped_positions.append(
-                        np.stack(
-                            [
-                                df["f_mean_positions[1]"].array,
-                                df["f_mean_positions[2]"].array,
-                                df["f_mean_positions[3]"].array,
-                            ],
-                            axis=1,
-                        )
-                    )
-                for k in columns:
-                    if k.startswith("c_"):
-                        kk = k.replace("c_", "")
-                        if kk not in dump.computes.keys():
-                            dump.computes[kk] = []
-                        dump.computes[kk].append(df[k].array)
-
-        return asdict(dump)
+    dump = DumpData()
+    for frame in _iter_raw_frames(file_name):
+        dump.steps.append(frame["steps"])
+        dump.natoms.append(frame["natoms"])
+        dump.cells.append(frame["cells"])
+        dump.indices.append(frame["indices"])
+        if len(frame["forces"]):
+            dump.forces.append(frame["forces"])
+        if len(frame["mean_forces"]):
+            dump.mean_forces.append(frame["mean_forces"])
+        if len(frame["velocities"]):
+            dump.velocities.append(frame["velocities"])
+        if len(frame["mean_velocities"]):
+            dump.mean_velocities.append(frame["mean_velocities"])
+        if len(frame["unwrapped_positions"]):
+            dump.unwrapped_positions.append(frame["unwrapped_positions"])
+            dump.positions.append(frame["positions"])
+        if len(frame["mean_unwrapped_positions"]):
+            dump.mean_unwrapped_positions.append(frame["mean_unwrapped_positions"])
+        for k, v in frame["computes"].items():
+            if k not in dump.computes:
+                dump.computes[k] = []
+            dump.computes[k].append(v)
+    return asdict(dump)
 
 
 def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,25 @@ from lammpsparser.output_raw import (
 )
 from lammpsparser.structure import UnfoldingPrism
 from lammpsparser.units import UnitConverter
+
+
+@dataclass
+class LammpsFrame:
+    """A single parsed, unit-converted frame from a LAMMPS dump file.
+
+    positions contains wrapped Cartesian coordinates (atoms folded back into
+    the unit cell). For mean-square-displacement or other analyses requiring
+    continuous trajectories, use parse_lammps_output_files instead, which
+    also provides unwrapped_positions.
+    """
+
+    step: int
+    cell: np.ndarray
+    positions: np.ndarray
+    indices: np.ndarray
+    forces: np.ndarray = field(default_factory=lambda: np.array([]).reshape(0, 3))
+    velocities: Optional[np.ndarray] = None
+    computes: Optional[Dict[str, np.ndarray]] = None
 
 
 def remap_indices_ase(
@@ -450,3 +470,113 @@ def _check_ortho_prism(
         boolean: True or False
     """
     return bool(np.isclose(prism.R, np.eye(3), rtol=rtol, atol=atol).all())
+
+
+def iter_lammps_frames(
+    working_directory: str,
+    structure: Atoms,
+    potential_elements: Union[np.ndarray, List],
+    units: str,
+    dump_out_file_name: str = "dump.out",
+    prism: Optional[UnfoldingPrism] = None,
+    remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
+    start: int = 0,
+    stop: Optional[int] = None,
+    step: int = 1,
+) -> Iterator[LammpsFrame]:
+    """
+    Yield one parsed, unit-converted frame at a time from a LAMMPS text dump file.
+
+    Memory usage is proportional to a single frame, not the entire trajectory.
+    Coordinates are rotated to the ASE frame, indices are remapped, and all
+    quantities are converted to pyiron/ASE units (Å, eV, ps).
+
+    Args:
+        working_directory: Directory containing the LAMMPS output files.
+        structure: Input ASE Atoms used as template for index remapping.
+        potential_elements: Ordered list of element symbols matching the potential.
+        units: LAMMPS unit system (e.g. ``"metal"``, ``"real"``).
+        dump_out_file_name: Name of the text dump file (default ``"dump.out"``).
+        prism: Pre-built UnfoldingPrism. Built from ``structure.cell`` if None.
+        remap_indices_funct: Index remapping function (default: remap_indices_ase).
+        start: First frame index to yield (0-based, default 0).
+        stop: Stop before this frame index. None means read to end.
+        step: Yield every ``step``-th frame (default 1).
+
+    Yields:
+        LammpsFrame: One frame with fields step, cell, positions, forces,
+        indices, velocities (or None), computes (or None). positions contains
+        wrapped Cartesian coordinates (atoms folded into the unit cell); for
+        analyses that need continuity across periodic boundaries (e.g. MSD),
+        use parse_lammps_output_files which also returns unwrapped_positions.
+
+        Note:
+            Time-averaged fix fields (mean_forces, mean_velocities,
+            mean_unwrapped_positions from ``fix ave/atom``) are not exposed
+            on LammpsFrame. Use parse_lammps_output_files for those fields.
+
+    Raises:
+        FileNotFoundError: If the dump file does not exist.
+        ValueError: If a frame is malformed or the file is truncated.
+    """
+    from lammpsparser.output_raw import _iter_raw_frames
+
+    file_path = os.path.join(working_directory, dump_out_file_name)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Dump file not found: {file_path}")
+
+    if prism is None:
+        prism = UnfoldingPrism(structure.cell)
+
+    convert_units = UnitConverter(units).convert_array_to_pyiron_units
+    rotation_lammps2orig = prism.R.T
+
+    for raw in _iter_raw_frames(file_path, start=start, stop=stop, step=step):
+        cell = np.array(prism.unfold_cell(cell=raw["cells"]))
+
+        if len(raw["positions"]):
+            positions_frac = raw["positions"]
+            positions = np.matmul(
+                np.matmul(positions_frac, np.array(raw["cells"])), rotation_lammps2orig
+            )
+            positions = convert_units(positions, label="positions")
+        else:
+            positions = np.array([]).reshape(0, 3)
+
+        if len(raw["forces"]):
+            forces = convert_units(
+                np.matmul(raw["forces"], rotation_lammps2orig),
+                label="forces",
+            )
+        else:
+            forces = np.array([]).reshape(0, 3)
+
+        indices = remap_indices_funct(
+            lammps_indices=raw["indices"],
+            potential_elements=potential_elements,
+            structure=structure,
+        )
+
+        velocities = None
+        if len(raw["velocities"]):
+            velocities = convert_units(
+                np.matmul(raw["velocities"], rotation_lammps2orig),
+                label="velocities",
+            )
+
+        computes = None
+        if raw["computes"]:
+            computes = {
+                k: convert_units(np.array(v), label=k)
+                for k, v in raw["computes"].items()
+            }
+
+        yield LammpsFrame(
+            step=int(raw["steps"]),
+            cell=cell,
+            positions=positions,
+            indices=indices,
+            forces=forces,
+            velocities=velocities,
+            computes=computes,
+        )

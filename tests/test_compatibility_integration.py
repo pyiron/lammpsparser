@@ -1,12 +1,19 @@
 import os
 import unittest
-import lammps
 import numpy as np
 from ase.build import bulk
 from ase.constraints import FixAtoms
-from lammpsparser.compatibility.lammps import lammps_file_interface_function
+from lammpsparser.compatibility.file import lammps_file_interface_function
+
+try:
+    import lammps
+
+    skip_lammps_test = False
+except ImportError:
+    skip_lammps_test = True
 
 
+@unittest.skipIf(skip_lammps_test, "LAMMPS executable not available")
 class TestLammpsIntegration(unittest.TestCase):
     def setUp(self):
         self.static_path = os.path.abspath(
@@ -35,5 +42,6 @@ class TestLammpsIntegration(unittest.TestCase):
             units="metal",
             lmp_command="lmp_mpi -in lmp.in",
         )
+        self.assertFalse(job_crashed)
         self.assertTrue(np.sum(parsed_output["generic"]["forces"][:, 0]) == 0.0)
         self.assertTrue(np.sum(parsed_output["generic"]["forces"][:, 2]) == 0.0)

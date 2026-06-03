@@ -46,7 +46,6 @@ class TestLammpsIntegration(unittest.TestCase):
                 "n_ionic_steps": 1000,
             },
             units="metal",
-            lmp_command="lmp_mpi -in lmp.in",
         )
         self.assertFalse(job_crashed)
         self.assertTrue(np.sum(parsed_output["generic"]["forces"][:, 0]) == 0.0)

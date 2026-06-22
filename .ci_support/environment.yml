@@ -8,4 +8,4 @@ dependencies:
 - numpy =2.4.6
 - pandas =3.0.3
 - scipy =1.17.1
-- structuretoolkit =0.0.44
+- structuretoolkit =0.0.45

@@ -42,6 +42,11 @@ class TestOutputRaw(unittest.TestCase):
         self.assertEqual(len(df), 1)
         self.assertNotIn("Press", df.columns)
 
+    def test_parse_raw_lammps_log_warning(self):
+        with self.assertWarns(UserWarning):
+            df = parse_raw_lammps_log("tests/static/log_with_warning/log.lammps")
+        self.assertEqual(len(df), 2)
+
     def test_parse_raw_dump_from_text_mean_fields(self):
         data = parse_raw_dump_from_text("tests/static/mean_dump/dump.out")
         self.assertEqual(len(data["steps"]), 1)

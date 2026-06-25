@@ -57,6 +57,23 @@ class TestPotential(unittest.TestCase):
         )
         self.assertEqual(df.Name, "1999--Mishin-Y--Al--LAMMPS--ipr1")
 
+    @mock.patch("lammpsparser.potential.get_resource_path_from_conda")
+    def test_get_potential_dataframe_resource_path_from_conda(self, mock_conda):
+        mock_conda.return_value = self.resource_path
+        df = get_potential_dataframe(structure=bulk("Al"), resource_path=None)
+        mock_conda.assert_called_once()
+        self.assertEqual(len(df), 1)
+
+    @mock.patch("lammpsparser.potential.get_resource_path_from_conda")
+    def test_get_potential_by_name_resource_path_from_conda(self, mock_conda):
+        mock_conda.return_value = self.resource_path
+        df = get_potential_by_name(
+            potential_name="1999--Mishin-Y--Al--LAMMPS--ipr1",
+            resource_path=None,
+        )
+        mock_conda.assert_called_once()
+        self.assertEqual(df.Name, "1999--Mishin-Y--Al--LAMMPS--ipr1")
+
     def test_convert_path_to_abs_posix(self):
         self.assertEqual(
             convert_path_to_abs_posix(path="~/test"),
@@ -238,3 +255,7 @@ class TestPotentialAvailable(unittest.TestCase):
 
     def test_get_attr(self):
         self.assertEqual(str(self.available.pot_pot1), "pot1")
+
+    def test_get_attr_missing(self):
+        with self.assertRaises(AttributeError):
+            self.available.pot_does_not_exist

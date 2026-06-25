@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 from ase.atoms import Atoms
@@ -17,7 +17,7 @@ class LammpsStructureCompatibility(LammpsStructure):
         atom_type: str = "atomic",
     ):
         super().__init__(bond_dict=bond_dict, units=units, atom_type=atom_type)
-        self._molecule_ids: list[int] = []
+        self._molecule_ids: Optional[List[int]] = []
 
     @property
     def structure(self) -> Optional[Atoms]:
@@ -37,16 +37,27 @@ class LammpsStructureCompatibility(LammpsStructure):
             structure (ase.atoms.Atoms): The structure to serialise.
         """
         self._structure = structure
-        if self.atom_type == "full":
+        if self._atom_type == "full":
             input_str = self.structure_full()
-        elif self.atom_type == "bond":
+        elif self._atom_type == "bond":
             input_str = self.structure_bond()
-        elif self.atom_type == "charge":
+        elif self._atom_type == "charge":
             input_str = self.structure_charge()
-        else:  # self.atom_type == 'atomic'
+        else:  # self._atom_type == 'atomic'
             input_str = self.structure_atomic()
 
         self._string_input = input_str + self._get_velocities_input_string()
+
+    @property
+    def molecule_ids(self) -> Union[List[int], np.ndarray]:
+        """Per-atom molecule IDs; defaults to all atoms in a single molecule."""
+        if self._molecule_ids is None or len(self._molecule_ids) == 0:
+            return np.ones(len(cast(Atoms, self._structure)), dtype=int)
+        return self._molecule_ids
+
+    @molecule_ids.setter
+    def molecule_ids(self, molecule_ids: Optional[List[int]]):
+        self._molecule_ids = molecule_ids
 
     def structure_bond(self):
         """
@@ -120,7 +131,7 @@ class LammpsStructureCompatibility(LammpsStructure):
                 bond_type[i, j] = count
                 bond_type[j, i] = count
 
-        if self.structure.bonds is None:
+        if getattr(self.structure, "bonds", None) is None:
             if self.cutoff_radius is None:
                 bonds_lst = get_bonds(structure=self.structure, max_shells=1)
             else:
@@ -182,16 +193,22 @@ class LammpsStructureCompatibility(LammpsStructure):
         coords = self.rotate_positions(self._structure)
 
         # extract electric charges from potential file
-        q_dict = {
-            species_name: self.potential.get_charge(species_name)
-            for species_name in set(self.structure.get_chemical_symbols())
-        }
+        if self.potential is not None:
+            q_dict = {
+                species_name: self.potential.get_charge(species_name)
+                for species_name in set(self.structure.get_chemical_symbols())
+            }
+        else:
+            q_dict = {
+                species_name: 0.0
+                for species_name in set(self.structure.get_chemical_symbols())
+            }
 
         bonds_lst, angles_lst = [], []
         bond_type_lst, angle_type_lst = [], []
         # Using a cutoff distance to draw the bonds instead of the number of neighbors
         # Only if any bonds are defined
-        if len(self._bond_dict.keys()) > 0:
+        if self._bond_dict is not None and len(self._bond_dict.keys()) > 0:
             cutoff_list = list()
             for val in self._bond_dict.values():
                 cutoff_list.append(np.max(val["cutoff_list"]))
@@ -350,7 +367,6 @@ def get_bonds(
         tolerance=2,
         id_list=None,
         width_buffer=1.2,
-        allow_ragged=None,
         mode="ragged",
         norm_order=2,
     )

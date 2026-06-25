@@ -4,6 +4,7 @@ from ase.build import bulk
 from ase.constraints import FixAtoms, FixCom, FixedPlane
 
 from lammpsparser.compatibility.constraints import (
+    _get_fixed_atom_boolean_vector,
     set_selective_dynamics,
 )
 
@@ -169,3 +170,23 @@ class TestConstraints(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             set_selective_dynamics(structure=atoms, calc_md=False)
+
+    def test_fixed_plane_legacy_a_kwarg(self):
+        # Older ASE releases named the FixedPlane constructor argument "a"
+        # instead of "indices"; todict() for such an object would report
+        # the constraint under the "a" key. Exercise that branch directly
+        # with a duck-typed constraint, since the installed ASE version no
+        # longer produces this shape.
+        class _LegacyFixedPlane:
+            def todict(self):
+                return {
+                    "name": "FixedPlane",
+                    "kwargs": {"a": 2, "direction": [1, 0, 0]},
+                }
+
+        atoms = self.structure.copy()
+        atoms.constraints = [_LegacyFixedPlane()]
+        fixed_atom_vector = _get_fixed_atom_boolean_vector(atoms)
+        self.assertTrue(fixed_atom_vector[2][0])
+        self.assertFalse(fixed_atom_vector[2][1])
+        self.assertFalse(fixed_atom_vector[2][2])

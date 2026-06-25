@@ -1,0 +1,8 @@
+LAMMPS (27 Jun 2024)
+units metal
+Step Temp PotEng TotEng Volume
+0 0 -17.800000050373 -17.800000050373 43.614208
+WARNING: Energy is not conserved
+1 0 -17.700000050373 -17.700000050373 43.614208
+Loop time of 1.302e-06 on 1 procs for 1 steps with 4 atoms
+Total wall time: 0:00:00

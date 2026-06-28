@@ -271,6 +271,36 @@ class TestCompatibilityFile(unittest.TestCase):
             content = f.readlines()
         self.assertFalse(any(line.startswith("write_dump") for line in content))
 
+    def test_dump_final_structure_raises_for_static_mode(self):
+        with self.assertRaisesRegex(ValueError, "molecular dynamics"):
+            lammps_file_interface_function(
+                working_directory=self.working_dir,
+                structure=self.structure,
+                potential=self.potential,
+                calc_mode="static",
+                units=self.units,
+                lmp_command="cp "
+                + str(os.path.join(self.static_path, "compatibility_output"))
+                + "/* .",
+                resource_path=os.path.join(self.static_path, "potential"),
+                dump_final_structure=True,
+            )
+
+    def test_dump_final_structure_raises_for_minimize_mode(self):
+        with self.assertRaisesRegex(ValueError, "molecular dynamics"):
+            lammps_file_interface_function(
+                working_directory=self.working_dir,
+                structure=self.structure,
+                potential=self.potential,
+                calc_dataclass=CalcMinimizeInput(),
+                units=self.units,
+                lmp_command="cp "
+                + str(os.path.join(self.static_path, "compatibility_output"))
+                + "/* .",
+                resource_path=os.path.join(self.static_path, "potential"),
+                dump_final_structure=True,
+            )
+
     def test_input_control_file_appends_unused_command(self):
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,

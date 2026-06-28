@@ -279,9 +279,7 @@ class TestCompatibilityFile(unittest.TestCase):
                 potential=self.potential,
                 calc_mode="static",
                 units=self.units,
-                lmp_command="cp "
-                + str(os.path.join(self.static_path, "compatibility_output"))
-                + "/* .",
+                lmp_command=f"cp {os.path.join(self.static_path, 'compatibility_output')}/* .",
                 resource_path=os.path.join(self.static_path, "potential"),
                 dump_final_structure=True,
             )
@@ -294,9 +292,7 @@ class TestCompatibilityFile(unittest.TestCase):
                 potential=self.potential,
                 calc_dataclass=CalcMinimizeInput(),
                 units=self.units,
-                lmp_command="cp "
-                + str(os.path.join(self.static_path, "compatibility_output"))
-                + "/* .",
+                lmp_command=f"cp {os.path.join(self.static_path, 'compatibility_output')}/* .",
                 resource_path=os.path.join(self.static_path, "potential"),
                 dump_final_structure=True,
             )

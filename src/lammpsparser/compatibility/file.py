@@ -189,7 +189,6 @@ def lammps_file_interface_function(
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
         lmp_str_lst += ["run {} ".format(n_ionic_steps)]
-        n_print = calc_kwargs.get("n_print", 1)
         if dump_final_structure:
             lmp_str_lst += [
                 "write_dump all custom dump.out "

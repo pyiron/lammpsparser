@@ -204,7 +204,7 @@ class TestCompatibilityFile(unittest.TestCase):
             + str(os.path.join(self.static_path, "compatibility_output"))
             + "/* .",
             resource_path=os.path.join(self.static_path, "potential"),
-            write_dump_if_missing=n_ionic_steps % n_print != 0,
+            dump_final_structure=n_ionic_steps % n_print != 0,
         )
         self.assertFalse(job_crashed)
         with open(self.working_dir + "/lmp.in", "r") as f:
@@ -238,7 +238,7 @@ class TestCompatibilityFile(unittest.TestCase):
             + str(os.path.join(self.static_path, "compatibility_output"))
             + "/* .",
             resource_path=os.path.join(self.static_path, "potential"),
-            write_dump_if_missing=n_ionic_steps % n_print != 0,
+            dump_final_structure=n_ionic_steps % n_print != 0,
         )
         self.assertFalse(job_crashed)
         with open(self.working_dir + "/lmp.in", "r") as f:

@@ -87,7 +87,7 @@ def lammps_file_interface_function(
         read_restart_file (bool): enable loading the LAMMPS restart file
         restart_file (str): file name of the LAMMPS restart file to copy
         dump_final_structure (bool): in "md" mode, append a ``write_dump`` command after the ``run`` command to capture
-                                     the final structure in ``dump.out``  Disabled by default.
+            the final structure in ``dump.out`` if last step is not a regular dump step. Disabled by default.
         executable_version (str): LAMMPS version to for the execution
         executable_path (str): path to the LAMMPS executable
         input_control_file (str|list|dict): Option to modify the LAMMPS input file directly
@@ -157,7 +157,7 @@ def lammps_file_interface_function(
     if calc_mode == "static":
         if dump_final_structure:
             raise ValueError(
-                "dump_final_structure is onlyt applicable for molecular dynamics (md) calculations."
+                "dump_final_structure is only applicable for molecular dynamics (md) calculations."
             )
         lmp_str_constraint_lst = [
             k + " " + v
@@ -193,7 +193,8 @@ def lammps_file_interface_function(
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
         lmp_str_lst += ["run {} ".format(n_ionic_steps)]
-        if dump_final_structure:
+        last_step_is_regular_dump = n_ionic_steps % calc_kwargs.get("n_print", 1) == 0
+        if dump_final_structure and not last_step_is_regular_dump:
             lmp_str_lst += [
                 "write_dump all custom dump.out "
                 + dump_fields
@@ -204,7 +205,7 @@ def lammps_file_interface_function(
     elif calc_mode == "minimize":
         if dump_final_structure:
             raise ValueError(
-                "dump_final_structure is onlyt applicable for molecular dynamics (md) calculations."
+                "dump_final_structure is only applicable for molecular dynamics (md) calculations."
             )
         calc_kwargs["units"] = units
         lmp_str_constraint_lst = [

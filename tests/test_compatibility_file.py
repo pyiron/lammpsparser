@@ -182,6 +182,121 @@ class TestCompatibilityFile(unittest.TestCase):
         for line in content_expected:
             self.assertIn(line, content)
 
+    def test_write_dump_if_missing_appends_command_when_not_divisible(self):
+        n_ionic_steps = 950
+        n_print = 100
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=n_ionic_steps,
+            n_print=n_print,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=get_potential_by_name(
+                potential_name=self.potential,
+                resource_path=os.path.join(self.static_path, "potential"),
+            ),
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            dump_final_structure=n_ionic_steps % n_print != 0,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn(
+            "write_dump all custom dump.out id type xsu ysu zsu fx fy fz vx vy vz "
+            'modify sort id format line "%d %d %20.15g %20.15g %20.15g %20.15g %20.15g '
+            '%20.15g %20.15g %20.15g %20.15g" append yes\n',
+            content,
+        )
+
+    def test_write_dump_if_missing_skipped_when_divisible(self):
+        n_ionic_steps = 1000
+        n_print = 100
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=n_ionic_steps,
+            n_print=n_print,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=get_potential_by_name(
+                potential_name=self.potential,
+                resource_path=os.path.join(self.static_path, "potential"),
+            ),
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            dump_final_structure=n_ionic_steps % n_print != 0,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertFalse(any(line.startswith("write_dump") for line in content))
+
+    def test_write_dump_if_missing_default_off(self):
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=950,
+            n_print=100,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=get_potential_by_name(
+                potential_name=self.potential,
+                resource_path=os.path.join(self.static_path, "potential"),
+            ),
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertFalse(any(line.startswith("write_dump") for line in content))
+
+    def test_dump_final_structure_raises_for_static_mode(self):
+        with self.assertRaisesRegex(ValueError, "molecular dynamics"):
+            lammps_file_interface_function(
+                working_directory=self.working_dir,
+                structure=self.structure,
+                potential=self.potential,
+                calc_mode="static",
+                units=self.units,
+                lmp_command=f"cp {os.path.join(self.static_path, 'compatibility_output')}/* .",
+                resource_path=os.path.join(self.static_path, "potential"),
+                dump_final_structure=True,
+            )
+
+    def test_dump_final_structure_raises_for_minimize_mode(self):
+        with self.assertRaisesRegex(ValueError, "molecular dynamics"):
+            lammps_file_interface_function(
+                working_directory=self.working_dir,
+                structure=self.structure,
+                potential=self.potential,
+                calc_dataclass=CalcMinimizeInput(),
+                units=self.units,
+                lmp_command=f"cp {os.path.join(self.static_path, 'compatibility_output')}/* .",
+                resource_path=os.path.join(self.static_path, "potential"),
+                dump_final_structure=True,
+            )
+
     def test_input_control_file_appends_unused_command(self):
         shell_output, parsed_output, job_crashed = lammps_file_interface_function(
             working_directory=self.working_dir,

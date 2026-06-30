@@ -566,6 +566,35 @@ class TestLammpsOutput(unittest.TestCase):
         self.assertEqual(len(output["generic"]["positions"][1]), 2)
         self.assertTrue(isinstance(output["generic"]["positions"], list))
 
+    def test_final_step_missing_from_dump_when_not_divisible(self):
+        # Reproduces the LAMMPS behaviour where the regular periodic `dump`
+        # command skips the final step of a run that is not a multiple of
+        # the dump frequency, even though `thermo`/log.lammps still reports it.
+        structure = bulk("Al")
+        output = parse_lammps_output_files(
+            working_directory=os.path.join(
+                self.static_folder, "dump_missing_final_step"
+            ),
+            structure=structure,
+            potential_elements=["Al"],
+            units="metal",
+        )
+        self.assertEqual(len(output["generic"]["steps"]), 3)
+        self.assertEqual(len(output["generic"]["positions"]), 2)
+
+    def test_final_step_recovered_with_write_dump(self):
+        # Once `write_dump ... append yes` adds the missing final frame to
+        # dump.out, the number of dump frames matches the number of log steps.
+        structure = bulk("Al")
+        output = parse_lammps_output_files(
+            working_directory=os.path.join(self.static_folder, "dump_with_final_step"),
+            structure=structure,
+            potential_elements=["Al"],
+            units="metal",
+        )
+        self.assertEqual(len(output["generic"]["steps"]), 3)
+        self.assertEqual(len(output["generic"]["positions"]), 3)
+
     def test_to_amat_triclinic(self):
         out = to_amat([0, 1, 0.1, 0, 1, 0.2, 0, 1, 0.3])
         self.assertTrue(

@@ -1,0 +1,30 @@
+ITEM: TIMESTEP
+0
+ITEM: NUMBER OF ATOMS
+1
+ITEM: BOX BOUNDS pp pp pp
+-1.76 1.76
+-1.76 1.76
+-1.76 1.76
+ITEM: ATOMS id type xsu ysu zsu fx fy fz vx vy vz
+1 1 0 0 0 0 0 0 0 0 0
+ITEM: TIMESTEP
+100
+ITEM: NUMBER OF ATOMS
+1
+ITEM: BOX BOUNDS pp pp pp
+-1.76 1.76
+-1.76 1.76
+-1.76 1.76
+ITEM: ATOMS id type xsu ysu zsu fx fy fz vx vy vz
+1 1 0 0 0 0 0 0 0 0 0
+ITEM: TIMESTEP
+150
+ITEM: NUMBER OF ATOMS
+1
+ITEM: BOX BOUNDS pp pp pp
+-1.76 1.76
+-1.76 1.76
+-1.76 1.76
+ITEM: ATOMS id type xsu ysu zsu fx fy fz vx vy vz
+1 1 0.1 0 0 0 0 0 0 0 0

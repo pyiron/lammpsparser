@@ -33,6 +33,7 @@ def lammps_file_interface_function(
     write_restart_file: bool = False,
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
+    dump_final_structure: bool = False,
 ):
     """
     A single function to execute a LAMMPS calculation based on the LAMMPS job implemented in pyiron
@@ -85,6 +86,8 @@ def lammps_file_interface_function(
         write_restart_file (bool): enable writing the LAMMPS restart file
         read_restart_file (bool): enable loading the LAMMPS restart file
         restart_file (str): file name of the LAMMPS restart file to copy
+        dump_final_structure (bool): in "md" mode, append a ``write_dump`` command after the ``run`` command to capture
+            the final structure in ``dump.out`` if last step is not a regular dump step. Disabled by default.
         executable_version (str): LAMMPS version to for the execution
         executable_path (str): path to the LAMMPS executable
         input_control_file (str|list|dict): Option to modify the LAMMPS input file directly
@@ -141,14 +144,21 @@ def lammps_file_interface_function(
         else:
             lmp_str_lst.append(line)
 
+    dump_fields = "id type xsu ysu zsu fx fy fz vx vy vz"
+    dump_format = '"%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"'
+
     lmp_str_lst += potential_lst
     lmp_str_lst += ["variable dumptime equal {} ".format(calc_kwargs.get("n_print", 1))]
     lmp_str_lst += [
-        "dump 1 all custom ${dumptime} dump.out id type xsu ysu zsu fx fy fz vx vy vz",
-        'dump_modify 1 sort id format line "%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"',
+        "dump 1 all custom ${dumptime} dump.out " + dump_fields,
+        "dump_modify 1 sort id format line " + dump_format,
     ]
 
     if calc_mode == "static":
+        if dump_final_structure:
+            raise ValueError(
+                "dump_final_structure is only applicable for molecular dynamics (md) calculations."
+            )
         lmp_str_constraint_lst = [
             k + " " + v
             for k, v in set_selective_dynamics(
@@ -183,7 +193,20 @@ def lammps_file_interface_function(
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
         lmp_str_lst += ["run {} ".format(n_ionic_steps)]
+        last_step_is_regular_dump = n_ionic_steps % calc_kwargs.get("n_print", 1) == 0
+        if dump_final_structure and not last_step_is_regular_dump:
+            lmp_str_lst += [
+                "write_dump all custom dump.out "
+                + dump_fields
+                + " modify sort id format line "
+                + dump_format
+                + " append yes"
+            ]
     elif calc_mode == "minimize":
+        if dump_final_structure:
+            raise ValueError(
+                "dump_final_structure is only applicable for molecular dynamics (md) calculations."
+            )
         calc_kwargs["units"] = units
         lmp_str_constraint_lst = [
             k + " " + v

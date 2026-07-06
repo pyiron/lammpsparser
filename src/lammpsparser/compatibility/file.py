@@ -36,15 +36,15 @@ def lammps_file_interface_function(
     dump_final_structure: bool = False,
 ):
     """
-    A single function to execute a LAMMPS calculation based on the LAMMPS job implemented in pyiron
+    A single function to execute a LAMMPS calculation based on the LAMMPS job interface implemented in lammpsparser
 
     Examples:
 
     >>> import os
     >>> from ase.build import bulk
-    >>> from pyiron_atomistics.lammps.lammps import lammps_function
+    >>> from lammpsparser.compatibility.file import lammps_file_interface_function
     >>>
-    >>> shell_output, parsed_output, job_crashed = lammps_function(
+    >>> shell_output, parsed_output, job_crashed = lammps_file_interface_function(
     ...     working_directory=os.path.abspath("lmp_working_directory"),
     ...     structure=bulk("Al", cubic=True),
     ...     potential='2009--Mendelev-M-I--Al-Mg--LAMMPS--ipr1',

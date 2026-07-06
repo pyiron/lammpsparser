@@ -200,7 +200,7 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
                     engine="c",
                 )
                 df.sort_values(by="id", ignore_index=True, inplace=True)
-                # Coordinate transform lammps->pyiron
+                # Coordinate transform lammps->ase
                 dump.indices.append(df["type"].array.astype(int))
 
                 dump.forces.append(

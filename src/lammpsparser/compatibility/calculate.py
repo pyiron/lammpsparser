@@ -64,7 +64,7 @@ def calc_md(
         delta_press (float): Barostat timescale, but in your Lammps time units, whatever those
             are. (DEPRECATED.)
         job_name (str): Job name of the job to generate a unique random seed.
-        rotation_matrix (numpy.ndarray): The rotation matrix from the pyiron to Lammps coordinate
+        rotation_matrix (numpy.ndarray): The rotation matrix from the ASE to Lammps coordinate
             frame.
     """
     if units not in LAMMPS_UNIT_CONVERSIONS.keys():
@@ -241,12 +241,8 @@ def calc_minimize(
         style ('cg'/'sd'/other values from Lammps docs): The style of the numeric minimization, either conjugate
             gradient, steepest descent, or other keys permissible from the Lammps docs on 'min_style'. (Default
             is 'cg' -- conjugate gradient.)
-        rotation_matrix (numpy.ndarray): The rotation matrix from the pyiron to Lammps coordinate frame.
+        rotation_matrix (numpy.ndarray): The rotation matrix from the ASE to Lammps coordinate frame.
     """
-    # This docstring is a source for the calc_minimize method in pyiron_atomistics.lammps.base.LammpsBase.calc_minimize and
-    # pyiron_atomistics.lammps.interactive.LammpsInteractive.calc_minimize -- Please ensure that changes to signature or
-    # defaults stay consistent!
-
     max_evaluations = 100 * max_iter
     if n_print > max_iter:
         warnings.warn("n_print larger than max_iter, adjusting to n_print=max_iter")
@@ -407,11 +403,11 @@ def _pressure_to_lammps(pressure, rotation_matrix, units="metal"):
     In case of a single pressure value, it is again returned as a single pressure value, to be used with the "iso"
     option (i.e., coupled deformation in x, y, and z).
 
-    Finally, we also ensure that the units are converted from pyiron's GPa to whatever Lammps needs.
+    Finally, we also ensure that the units are converted from lammpsparser's GPa to whatever Lammps needs.
 
     Args:
         pressure (float/list/tuple/numpy.ndarray): The pressure(s) to convert.
-        rotation_matrix (numpy.ndarray): The 3x3 matrix rotating from the pyiron to Lammps coordinate frame.
+        rotation_matrix (numpy.ndarray): The 3x3 matrix rotating from the ASE to Lammps coordinate frame.
 
     Returns:
         (list): pxx, pyy, pzz, pxy, pxz, and pyz to be passed to Lammps.
@@ -451,7 +447,7 @@ def _pressure_to_lammps(pressure, rotation_matrix, units="metal"):
                 "Cells which are not orthorhombic or an upper-triangular cell are incompatible with Lammps "
                 "constant pressure calculations unless the entire pressure tensor is defined. "
                 "The reason is that Lammps demands such cells be represented with an "
-                "upper-triangular unit cell, thus a rotation between Lammps and pyiron coordinate "
+                "upper-triangular unit cell, thus a rotation between Lammps and ASE coordinate "
                 "frames is required; it is not possible to rotate the pressure tensor if any of "
                 "its components is None."
             )

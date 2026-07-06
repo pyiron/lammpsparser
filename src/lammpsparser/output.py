@@ -33,7 +33,7 @@ def remap_indices_ase(
     Args:
         lammps_indices (numpy.ndarray/list): The Lammps-dumped integers.
         potential_elements (numpy.ndarray/list):
-        structure (pyiron_atomistics.atomistics.structure.Atoms):
+        structure (ase.atoms.Atoms):
 
     Returns:
         numpy.ndarray: Those integers mapped onto the structure.
@@ -73,7 +73,7 @@ def parse_lammps_output(
 
     Looks for a dump file (H5MD format preferred, text format as fallback) and
     a log file in ``working_directory``, converts all quantities from the
-    LAMMPS unit system to pyiron/ASE units (Å, eV, ps, …), and returns the
+    LAMMPS unit system to ASE units (Å, eV, ps, …), and returns the
     results in a nested dictionary that can be stored directly in an HDF5 file.
 
     The function resolves the LAMMPS triclinic-to-orthogonal coordinate
@@ -105,7 +105,7 @@ def parse_lammps_output(
     Returns:
         dict: Nested dictionary with two top-level keys:
 
-        - ``"generic"`` – quantities stored in pyiron/ASE units:
+        - ``"generic"`` – quantities stored in ASE units:
           ``"steps"``, ``"cells"``, ``"positions"``, ``"forces"``,
           ``"velocities"``, ``"indices"``, ``"temperature"``,
           ``"energy_pot"``, ``"energy_tot"``, ``"volume"``,
@@ -203,7 +203,7 @@ def _parse_dump(
     if os.path.isfile(dump_h5_full_file_name):
         if not _check_ortho_prism(prism=prism):
             raise RuntimeError(
-                "The Lammps output will not be mapped back to pyiron correctly."
+                "The Lammps output will not be mapped back onto the structure correctly."
             )
         return parse_raw_dump_from_h5md(
             file_name=dump_h5_full_file_name,
@@ -295,8 +295,8 @@ def _parse_log(
 
     Args:
         log_lammps_full_file_name (str): The path to the lammps log file.
-        prism (pyiron_atomistics.lammps.structure.UnfoldingPrism): For mapping between
-            lammps and pyiron structures
+        prism (lammpsparser.structure.UnfoldingPrism): For mapping between
+            lammps and ase structures
 
     Returns:
         (list | None): Generic keys
@@ -321,7 +321,7 @@ def _collect_output_log(
     """
     Parse the LAMMPS log file and organise thermo data into generic and pressure outputs.
 
-    Renames standard LAMMPS thermo column names to pyiron equivalents
+    Renames standard LAMMPS thermo column names to lammpsparser equivalents
     (e.g. ``Temp`` → ``temperature``, ``PotEng`` → ``energy_pot``).
     If all six independent Voigt pressure components (``Pxx``, ``Pyy``,
     ``Pzz``, ``Pxy``, ``Pxz``, ``Pyz``) are present they are assembled into
@@ -395,7 +395,7 @@ def _collect_output_log(
             .reshape(-1, 3, 3)
             .astype("float64")
         )
-        # Rotate pressures from Lammps frame to pyiron frame if necessary
+        # Rotate pressures from Lammps frame to ASE frame if necessary
         if _check_ortho_prism(prism=prism):
             rotation_matrix = prism.R.T
             pressures = rotation_matrix.T @ pressures @ rotation_matrix
@@ -442,7 +442,7 @@ def _check_ortho_prism(
     Check if the rotation matrix of the UnfoldingPrism object is sufficiently close to a unit matrix
 
     Args:
-        prism (pyiron_atomistics.lammps.structure.UnfoldingPrism): UnfoldingPrism object to check
+        prism (lammpsparser.structure.UnfoldingPrism): UnfoldingPrism object to check
         rtol (float): relative precision for numpy.isclose()
         atol (float): absolute precision for numpy.isclose()
 

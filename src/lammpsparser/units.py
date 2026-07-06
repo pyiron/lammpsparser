@@ -17,7 +17,7 @@ __copyright__ = (
 )
 
 
-# Conversion factors for transfroming pyiron units to Lammps units (alphabetical)
+# Conversion factors for transforming physical quantity units to Lammps units (alphabetical)
 
 AMU_TO_G = spc.atomic_mass * spc.kilo
 AMU_TO_KG = spc.atomic_mass
@@ -122,7 +122,7 @@ for values in LAMMPS_UNIT_CONVERSIONS.values():
     values["dimensionless_integer_quantity"] = 1
 
 
-# Hard coded list of all quantities we store in pyiron and the type of quantity it stores (Expand if necessary)
+# Hard coded list of all quantities exposed by lammpsparser and the type of quantity it stores (Expand if necessary)
 _conversion_dict: Dict[str, List[str]] = dict()
 _conversion_dict["distance"] = [
     "positions",

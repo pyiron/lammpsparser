@@ -141,7 +141,7 @@ class UnfoldingPrism(PrismBase):
         """
         Unfold LAMMPS cell to original
 
-        Let C be the pyiron_atomistics cell and A be the Lammps cell, then define (in init) the rotation matrix between them as
+        Let C be the ase cell and A be the Lammps cell, then define (in init) the rotation matrix between them as
             R := C^inv.A
         And recall that rotation matrices have the property
             R^T == R^inv
@@ -607,10 +607,10 @@ def structure_to_lammps(structure: Atoms) -> Atoms:
     Converts a structure to the Lammps coordinate frame
 
     Args:
-        structure (pyiron.atomistics.structure.atoms.Atoms): Structure to convert.
+        structure (ase.atoms.Atoms): Structure to convert.
 
     Returns:
-        pyiron.atomistics.structure.atoms.Atoms: Structure with the LAMMPS coordinate frame.
+        ase.atoms.Atoms: Structure with the LAMMPS coordinate frame.
     """
     prism = UnfoldingPrism(structure.cell)
     lammps_structure = structure.copy()

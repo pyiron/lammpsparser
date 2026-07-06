@@ -105,7 +105,7 @@ def parse_lammps_output(
     Returns:
         dict: Nested dictionary with two top-level keys:
 
-        - ``"generic"`` – quantities stored in ASE units:
+        - ``"generic"`` - quantities stored in ASE units:
           ``"steps"``, ``"cells"``, ``"positions"``, ``"forces"``,
           ``"velocities"``, ``"indices"``, ``"temperature"``,
           ``"energy_pot"``, ``"energy_tot"``, ``"volume"``,

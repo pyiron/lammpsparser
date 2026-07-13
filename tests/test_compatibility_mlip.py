@@ -7,6 +7,7 @@ import numpy as np
 from lammpsparser.compatibility.mlip import (
     MlipConfiguration,
     check_mlip_convergence,
+    get_mlip_selected_structures,
     load_mlip_cfgs,
     write_mlip_input_file,
 )
@@ -152,6 +153,41 @@ class TestLoadMlipCfgs(unittest.TestCase):
         self.assertIsNone(cfg.energy)
         self.assertIsNone(cfg.stress)
         self.assertIsNone(cfg.grade)
+
+
+class TestGetMlipSelectedStructures(unittest.TestCase):
+    def test_builds_atoms_with_species_and_metadata(self):
+        structures = get_mlip_selected_structures(
+            file_name=os.path.join(STATIC_MLIP_DIR, "selected.cfg"),
+            species=["Al", "Ni"],
+        )
+        self.assertEqual(len(structures), 2)
+
+        first = structures[0]
+        self.assertEqual(first.get_chemical_symbols(), ["Al", "Ni"])
+        np.testing.assert_allclose(
+            first.arrays["forces"], [[-0.01, -0.02, -0.03], [0.01, 0.02, 0.03]]
+        )
+        self.assertAlmostEqual(first.info["energy"], -14.493988037109375)
+        np.testing.assert_allclose(
+            first.info["stress"],
+            [
+                -0.239923946063382,
+                -0.239923946063382,
+                -0.239923946063382,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        )
+        self.assertAlmostEqual(first.info["mv_grade"], 3.19183351)
+
+        second = structures[1]
+        self.assertEqual(second.get_chemical_symbols(), ["Al"])
+        self.assertNotIn("forces", second.arrays)
+        self.assertNotIn("energy", second.info)
+        self.assertNotIn("stress", second.info)
+        self.assertNotIn("mv_grade", second.info)
 
 
 if __name__ == "__main__":

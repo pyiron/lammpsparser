@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 import numpy as np
+from ase.atoms import Atoms
 
 
 def write_mlip_input_file(
@@ -257,3 +258,45 @@ def _parse_cfg_block(lines: List[str]) -> MlipConfiguration:
         stress=stress,
         grade=grade,
     )
+
+
+def get_mlip_selected_structures(file_name: str, species: List[str]) -> List[Atoms]:
+    """
+    Build structures from an MLIP ``.cfg`` file (typically ``selected.cfg``).
+
+    Args:
+        file_name (str): Path to a ``.cfg`` file, as accepted by
+            :func:`load_mlip_cfgs`.
+        species (list[str]): Chemical symbols in the same order as the
+            interatomic potential declares them (e.g. the potential
+            dataframe's ``"Species"`` column), used to map each
+            configuration's integer type indices to element symbols.
+
+    Returns:
+        list[ase.atoms.Atoms]: One ``Atoms`` object per configuration in
+        ``file_name``, with ``pbc=True``. When present in the source
+        configuration: per-atom forces are stored in ``atoms.arrays["forces"]``,
+        and the total energy, stress (ASE Voigt order), and MLIP
+        extrapolation grade are stored in ``atoms.info["energy"]``,
+        ``atoms.info["stress"]``, and ``atoms.info["mv_grade"]``
+        respectively.
+    """
+    structures = []
+    for cfg in load_mlip_cfgs(file_name):
+        symbols = np.asarray(species)[cfg.types]
+        atoms = Atoms(
+            symbols=symbols,
+            positions=cfg.positions,
+            cell=cfg.cell,
+            pbc=True,
+        )
+        if cfg.forces is not None:
+            atoms.arrays["forces"] = cfg.forces
+        if cfg.energy is not None:
+            atoms.info["energy"] = cfg.energy
+        if cfg.stress is not None:
+            atoms.info["stress"] = cfg.stress
+        if cfg.grade is not None:
+            atoms.info["mv_grade"] = cfg.grade
+        structures.append(atoms)
+    return structures

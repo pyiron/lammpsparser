@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 
 def write_mlip_input_file(
@@ -61,7 +60,7 @@ def write_mlip_input_file(
         lines.append("select FALSE")
 
     os.makedirs(working_directory, exist_ok=True)
-    file_path = os.path.join(working_directory, file_name)
+    file_path = os.path.abspath(os.path.join(working_directory, file_name))
     with open(file_path, "w") as f:
         f.writelines([line + "\n" for line in lines])
     return file_path

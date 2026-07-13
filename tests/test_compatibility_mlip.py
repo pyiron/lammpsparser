@@ -81,9 +81,7 @@ class TestWriteMlipInputFile(unittest.TestCase):
 
 class TestCheckMlipConvergence(unittest.TestCase):
     def setUp(self):
-        self.working_directory = os.path.abspath(
-            "mlip_convergence_working_directory"
-        )
+        self.working_directory = os.path.abspath("mlip_convergence_working_directory")
         os.makedirs(self.working_directory, exist_ok=True)
 
     def tearDown(self):

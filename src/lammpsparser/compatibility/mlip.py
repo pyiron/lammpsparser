@@ -236,18 +236,28 @@ def _parse_cfg_block(lines: List[str]) -> MlipConfiguration:
     if "cartes_x" in column_index:
         positions = atom_array[
             :,
-            [column_index["cartes_x"], column_index["cartes_y"], column_index["cartes_z"]],
+            [
+                column_index["cartes_x"],
+                column_index["cartes_y"],
+                column_index["cartes_z"],
+            ],
         ]
     else:
         fractional = atom_array[
             :,
-            [column_index["direct_x"], column_index["direct_y"], column_index["direct_z"]],
+            [
+                column_index["direct_x"],
+                column_index["direct_y"],
+                column_index["direct_z"],
+            ],
         ]
         positions = fractional @ cell
 
     forces = None
     if "fx" in column_index:
-        forces = atom_array[:, [column_index["fx"], column_index["fy"], column_index["fz"]]]
+        forces = atom_array[
+            :, [column_index["fx"], column_index["fy"], column_index["fz"]]
+        ]
 
     return MlipConfiguration(
         cell=cell,

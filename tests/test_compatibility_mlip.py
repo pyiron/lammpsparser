@@ -223,9 +223,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
             [[0.0, 0.0, 0.0], [2.0, 2.0, 2.0]],
         )
         np.testing.assert_array_equal(cfg.types, [0, 1])
-        np.testing.assert_allclose(
-            cfg.forces, [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]]
-        )
+        np.testing.assert_allclose(cfg.forces, [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]])
         self.assertAlmostEqual(cfg.energy, -10.0)
 
     def test_reordered_plus_stress_parsed_to_voigt_order(self):
@@ -235,9 +233,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
         np.testing.assert_allclose(cfg.stress, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
 
     def test_end_cfg_without_begin_cfg_raises(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".cfg", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as tmp:
             tmp.write("END_CFG\n")
             tmp_path = tmp.name
         try:
@@ -255,9 +251,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
             "             1    0      0.0      0.0      0.0\n"
             "END_CFG\n"
         )
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".cfg", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
         try:
@@ -277,9 +271,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
             "         0.0         0.0         4.0\n"
             "END_CFG\n"
         )
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".cfg", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
         try:
@@ -299,9 +291,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
             "             1    0      0.0      0.0      0.0\n"
             "END_CFG\n"
         )
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".cfg", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
         try:
@@ -311,9 +301,7 @@ class TestLoadMlipCfgs(unittest.TestCase):
             os.unlink(tmp_path)
 
     def test_empty_file_returns_empty_list(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".cfg", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as tmp:
             tmp.write("")
             tmp_path = tmp.name
         try:

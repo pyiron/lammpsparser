@@ -2,10 +2,16 @@ import os
 import shutil
 import unittest
 
+import numpy as np
+
 from lammpsparser.compatibility.mlip import (
+    MlipConfiguration,
     check_mlip_convergence,
+    load_mlip_cfgs,
     write_mlip_input_file,
 )
+
+STATIC_MLIP_DIR = os.path.join(os.path.dirname(__file__), "static", "mlip")
 
 
 class TestWriteMlipInputFile(unittest.TestCase):
@@ -101,6 +107,51 @@ class TestCheckMlipConvergence(unittest.TestCase):
         self.assertFalse(
             check_mlip_convergence(working_directory=self.working_directory)
         )
+
+
+class TestLoadMlipCfgs(unittest.TestCase):
+    def test_parses_two_configurations(self):
+        configurations = load_mlip_cfgs(os.path.join(STATIC_MLIP_DIR, "selected.cfg"))
+        self.assertEqual(len(configurations), 2)
+
+    def test_first_configuration_has_full_data(self):
+        cfg = load_mlip_cfgs(os.path.join(STATIC_MLIP_DIR, "selected.cfg"))[0]
+        self.assertIsInstance(cfg, MlipConfiguration)
+        np.testing.assert_allclose(cfg.cell, np.eye(3) * 5.680600067138671875)
+        np.testing.assert_allclose(
+            cfg.positions,
+            [
+                [0.0, 0.0, 0.0],
+                [2.840300033569336, 2.840300033569336, 2.840300033569336],
+            ],
+        )
+        np.testing.assert_array_equal(cfg.types, [0, 1])
+        np.testing.assert_allclose(
+            cfg.forces, [[-0.01, -0.02, -0.03], [0.01, 0.02, 0.03]]
+        )
+        self.assertAlmostEqual(cfg.energy, -14.493988037109375)
+        np.testing.assert_allclose(
+            cfg.stress,
+            [
+                -0.239923946063382,
+                -0.239923946063382,
+                -0.239923946063382,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        )
+        self.assertAlmostEqual(cfg.grade, 3.19183351)
+
+    def test_second_configuration_has_only_required_data(self):
+        cfg = load_mlip_cfgs(os.path.join(STATIC_MLIP_DIR, "selected.cfg"))[1]
+        np.testing.assert_allclose(cfg.cell, np.eye(3) * 4.0)
+        np.testing.assert_allclose(cfg.positions, [[1.0, 1.0, 1.0]])
+        np.testing.assert_array_equal(cfg.types, [0])
+        self.assertIsNone(cfg.forces)
+        self.assertIsNone(cfg.energy)
+        self.assertIsNone(cfg.stress)
+        self.assertIsNone(cfg.grade)
 
 
 if __name__ == "__main__":

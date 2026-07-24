@@ -34,6 +34,8 @@ def lammps_file_interface_function(
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
     dump_final_structure: bool = False,
+    n_print_dump: Optional[int] = None,
+    n_print_thermo: Optional[int] = None,
 ):
     """
     A single function to execute a LAMMPS calculation based on the LAMMPS job interface implemented in lammpsparser
@@ -88,6 +90,13 @@ def lammps_file_interface_function(
         restart_file (str): file name of the LAMMPS restart file to copy
         dump_final_structure (bool): in "md" mode, append a ``write_dump`` command after the ``run`` command to capture
             the final structure in ``dump.out`` if last step is not a regular dump step. Disabled by default.
+        n_print_dump (int, optional): Override the dump-file write interval (steps between successive
+            ``dump`` writes), independently of ``calc_kwargs["n_print"]``. Defaults to ``None``, which
+            falls back to ``calc_kwargs.get("n_print", 1)`` (the pre-existing behavior).
+        n_print_thermo (int, optional): Override the thermodynamic print interval (steps between
+            successive ``thermo`` output lines), independently of ``calc_kwargs["n_print"]``. Defaults
+            to ``None``, which leaves ``calc_kwargs["n_print"]`` untouched (the pre-existing behavior).
+            Has no effect in ``"static"`` mode, since that mode only ever performs a single step.
         executable_version (str): LAMMPS version to for the execution
         executable_path (str): path to the LAMMPS executable
         input_control_file (str|list|dict): Option to modify the LAMMPS input file directly
@@ -112,6 +121,12 @@ def lammps_file_interface_function(
         calc_kwargs = {}
     else:
         calc_kwargs = calc_kwargs.copy()
+
+    dump_interval = (
+        n_print_dump if n_print_dump is not None else calc_kwargs.get("n_print", 1)
+    )
+    if n_print_thermo is not None:
+        calc_kwargs["n_print"] = n_print_thermo
 
     if lmp_command is None:
         lmp_command = (
@@ -148,7 +163,7 @@ def lammps_file_interface_function(
     dump_format = '"%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"'
 
     lmp_str_lst += potential_lst
-    lmp_str_lst += ["variable dumptime equal {} ".format(calc_kwargs.get("n_print", 1))]
+    lmp_str_lst += ["variable dumptime equal {} ".format(dump_interval)]
     lmp_str_lst += [
         "dump 1 all custom ${dumptime} dump.out " + dump_fields,
         "dump_modify 1 sort id format line " + dump_format,
@@ -193,7 +208,7 @@ def lammps_file_interface_function(
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
         lmp_str_lst += ["run {} ".format(n_ionic_steps)]
-        last_step_is_regular_dump = n_ionic_steps % calc_kwargs.get("n_print", 1) == 0
+        last_step_is_regular_dump = n_ionic_steps % dump_interval == 0
         if dump_final_structure and not last_step_is_regular_dump:
             lmp_str_lst += [
                 "write_dump all custom dump.out "

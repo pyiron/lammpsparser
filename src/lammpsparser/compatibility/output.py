@@ -6,6 +6,7 @@ def structure_from_parsed_output(
     parsed_output: dict,
     *,
     wrap: bool = False,
+    scale_atoms: bool = True,
     index: int = -1,
 ) -> Atoms:
     """Construct an `Atoms` object from parsed output data.
@@ -27,10 +28,12 @@ def structure_from_parsed_output(
     """
     # Take a copy of the initial structure as template and update the relevant properties
     atoms_copy = initial_structure.copy()
+    atoms_copy.set_cell(
+        parsed_output["generic"]["cells"][index], scale_atoms=scale_atoms
+    )
     atoms_copy.set_array("indices", parsed_output["generic"]["indices"][index])
     atoms_copy.set_positions(parsed_output["generic"]["positions"][index])
     atoms_copy.set_velocities(parsed_output["generic"]["velocities"][index])
-    atoms_copy.set_cell(parsed_output["generic"]["cells"][index])
     atoms_copy.set_pbc(True)
     if wrap:
         atoms_copy.wrap()

@@ -752,6 +752,124 @@ class TestCompatibilityFile(unittest.TestCase):
         for line in content_expected:
             self.assertIn(line, content)
 
+    def test_n_print_dump_override_md(self):
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=1000,
+            n_print=100,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            n_print_dump=50,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("variable dumptime equal 50 \n", content)
+        self.assertIn("variable thermotime equal 100 \n", content)
+
+    def test_n_print_thermo_override_md(self):
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=1000,
+            n_print=100,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            n_print_thermo=25,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("variable dumptime equal 100 \n", content)
+        self.assertIn("variable thermotime equal 25 \n", content)
+
+    def test_n_print_dump_and_thermo_override_together(self):
+        md_input = CalcMDInput(
+            temperature=500.0,
+            pressure=0.0,
+            n_ionic_steps=1000,
+            n_print=100,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_dataclass=md_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            n_print_dump=10,
+            n_print_thermo=20,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("variable dumptime equal 10 \n", content)
+        self.assertIn("variable thermotime equal 20 \n", content)
+
+    def test_n_print_dump_and_thermo_override_minimize(self):
+        minimize_input = CalcMinimizeInput(
+            n_print=100,
+            max_iter=200,
+        )
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_dataclass=minimize_input,
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            n_print_dump=5,
+            n_print_thermo=15,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("variable dumptime equal 5 \n", content)
+        self.assertIn("variable thermotime equal 15 \n", content)
+
+    def test_n_print_thermo_noop_static_mode(self):
+        shell_output, parsed_output, job_crashed = lammps_file_interface_function(
+            working_directory=self.working_dir,
+            structure=self.structure,
+            potential=self.potential,
+            calc_mode="static",
+            units=self.units,
+            lmp_command="cp "
+            + str(os.path.join(self.static_path, "compatibility_output"))
+            + "/* .",
+            resource_path=os.path.join(self.static_path, "potential"),
+            n_print_thermo=42,
+        )
+        self.assertFalse(job_crashed)
+        with open(self.working_dir + "/lmp.in", "r") as f:
+            content = f.readlines()
+        self.assertIn("variable thermotime equal 1\n", content)
+
 
 class TestGlassPotential(unittest.TestCase):
     def setUp(self):

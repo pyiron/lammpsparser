@@ -1,4 +1,3 @@
-# coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
@@ -67,11 +66,9 @@ class UnfoldingPrism(PrismBase):
         if isinstance(pbc, bool):
             pbc = (pbc, pbc, pbc)
         try:
-            super(UnfoldingPrism, self).__init__(
-                cell, pbc=np.array(pbc), tolerance=float("1e-{}".format(digits))
-            )
+            super().__init__(cell, pbc=np.array(pbc), tolerance=float(f"1e-{digits}"))
         except TypeError:
-            super(UnfoldingPrism, self).__init__(cell, pbc=np.array(pbc), digits=digits)  # type: ignore[call-arg]
+            super().__init__(cell, pbc=np.array(pbc), digits=digits)  # type: ignore[call-arg]
         a, b, c = cell
         an, bn, cn = [np.linalg.norm(v) for v in cell]
 
@@ -359,24 +356,24 @@ class LammpsStructure:
         """
         atomtypes = (
             "Start File for LAMMPS \n"
-            + "{0:d} atoms".format(len(structure))
+            + f"{len(structure):d} atoms"
             + " \n"
-            + "{0} atom types".format(len(species_lammps_id_dict.keys()))
+            + f"{len(species_lammps_id_dict.keys())} atom types"
             + " \n"
         )  # '{0} atom types'.format(structure.get_number_of_species()) + ' \n'
         if nbonds is not None:
-            atomtypes += "{0:d} bonds\n".format(nbonds)
+            atomtypes += f"{nbonds:d} bonds\n"
         if nangles is not None:
-            atomtypes += "{0:d} angles\n".format(nangles)
+            atomtypes += f"{nangles:d} angles\n"
         if nbond_types is not None:
-            atomtypes += "{0:d} bond types\n".format(nbond_types)
+            atomtypes += f"{nbond_types:d} bond types\n"
         if nangle_types is not None:
-            atomtypes += "{0:d} angle types\n".format(nangle_types)
+            atomtypes += f"{nangle_types:d} angle types\n"
 
         masses = "Masses\n\n"
         for el, idx in species_lammps_id_dict.items():
             mass = atomic_masses[atomic_numbers[el]]
-            masses += "{0:3d} {1:f}  # ({2}) \n".format(idx, mass, el)
+            masses += f"{idx:3d} {mass:f}  # ({el}) \n"
 
         return atomtypes + "\n" + cell_dimensions + "\n" + masses + "\n"
 
@@ -401,13 +398,11 @@ class LammpsStructure:
         # Please, be carefull and not round xhi, yhi,..., otherwise you will get too skew cell from LAMMPS.
         # These values are already checked in UnfoldingPrism to fullfill LAMMPS skewness criteria
         simulation_cell = (
-            "0. {} xlo xhi\n".format(xhi)
-            + "0. {} ylo yhi\n".format(yhi)
-            + "0. {} zlo zhi\n".format(zhi)
+            f"0. {xhi} xlo xhi\n" + f"0. {yhi} ylo yhi\n" + f"0. {zhi} zlo zhi\n"
         )
 
         if is_skewed(self._structure) or self._force_skewed:
-            simulation_cell += "{0} {1} {2} xy xz yz\n".format(xy, xz, yz)
+            simulation_cell += f"{xy} {xz} {yz} xy xz yz\n"
 
         return simulation_cell
 
@@ -437,9 +432,7 @@ class LammpsStructure:
             c = np.zeros(3)
             c[:dim] = coord
             atoms += (
-                "{0:d} {1:d} {2:.15f} {3:.15f} {4:.15f}".format(
-                    id_atom + 1, species_lammps_id_dict[el], c[0], c[1], c[2]
-                )
+                f"{id_atom + 1:d} {species_lammps_id_dict[el]:d} {c[0]:.15f} {c[1]:.15f} {c[2]:.15f}"
                 + "\n"
             )
         return (
@@ -476,14 +469,7 @@ class LammpsStructure:
             c = np.zeros(3)
             c[:dim] = coord
             atoms += (
-                "{0:d} {1:d} {2:f} {3:.15f} {4:.15f} {5:.15f}".format(
-                    id_atom + 1,
-                    species_lammps_id_dict[el],
-                    el_charge_lst[id_atom],
-                    c[0],
-                    c[1],
-                    c[2],
-                )
+                f"{id_atom + 1:d} {species_lammps_id_dict[el]:d} {el_charge_lst[id_atom]:f} {c[0]:.15f} {c[1]:.15f} {c[2]:.15f}"
                 + "\n"
             )
         return (
@@ -540,8 +526,7 @@ class LammpsStructure:
             file_name = posixpath.join(cwd, file_name)
 
         with open(file_name, "w") as f:
-            for line in self._string_input:
-                f.write(line)
+            f.writelines(self._string_input)
 
 
 def is_skewed(structure: Atoms, tolerance: float = 1.0e-8) -> bool:

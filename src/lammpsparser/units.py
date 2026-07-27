@@ -1,4 +1,3 @@
-# coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
@@ -233,7 +232,7 @@ class UnitConverter:
             ndarray: The array after conversion
 
         """
-        if label in quantity_dict.keys():
+        if label in quantity_dict:
             return np.array(
                 np.array(array) * self.lammps_to_pyiron(quantity_dict[label]),
                 dtype=dtype_dict[label],

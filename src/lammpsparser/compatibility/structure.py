@@ -154,9 +154,7 @@ class LammpsStructureCompatibility(LammpsStructure):
 
         bonds_str = "Bonds \n\n"
         for i_bond, (i_a, i_b, b_type) in enumerate(bonds):
-            bonds_str += (
-                "{0:d} {1:d} {2:d} {3:d}".format(i_bond + 1, b_type, i_a, i_b) + "\n"
-            )
+            bonds_str += f"{i_bond + 1:d} {b_type:d} {i_a:d} {i_b:d}" + "\n"
 
         return (
             self.lammps_header(
@@ -294,9 +292,7 @@ class LammpsStructureCompatibility(LammpsStructure):
             bonds_str = "Bonds \n\n"
             for i_bond, id_vec in enumerate(bonds_lst):
                 bonds_str += (
-                    "{0:d} {1:d} {2:d} {3:d}".format(
-                        i_bond + 1, bond_type_lst[i_bond], id_vec[0], id_vec[1]
-                    )
+                    f"{i_bond + 1:d} {bond_type_lst[i_bond]:d} {id_vec[0]:d} {id_vec[1]:d}"
                     + "\n"
                 )
         else:
@@ -306,13 +302,7 @@ class LammpsStructureCompatibility(LammpsStructure):
             angles_str = "Angles \n\n"
             for i_angle, id_vec in enumerate(angles_lst):
                 angles_str += (
-                    "{0:d} {1:d} {2:d} {3:d} {4:d}".format(
-                        i_angle + 1,
-                        angle_type_lst[i_angle],
-                        id_vec[0],
-                        id_vec[1],
-                        id_vec[2],
-                    )
+                    f"{i_angle + 1:d} {angle_type_lst[i_angle]:d} {id_vec[0]:d} {id_vec[1]:d} {id_vec[2]:d}"
                     + "\n"
                 )
         else:

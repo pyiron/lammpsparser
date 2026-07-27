@@ -11,18 +11,18 @@ import pandas as pd
 
 @dataclass
 class DumpData:
-    steps: List = field(default_factory=lambda: [])
-    natoms: List = field(default_factory=lambda: [])
-    cells: List = field(default_factory=lambda: [])
-    indices: List = field(default_factory=lambda: [])
-    forces: List = field(default_factory=lambda: [])
-    mean_forces: List = field(default_factory=lambda: [])
-    velocities: List = field(default_factory=lambda: [])
-    mean_velocities: List = field(default_factory=lambda: [])
-    unwrapped_positions: List = field(default_factory=lambda: [])
-    mean_unwrapped_positions: List = field(default_factory=lambda: [])
-    positions: List = field(default_factory=lambda: [])
-    computes: Dict = field(default_factory=lambda: {})
+    steps: List = field(default_factory=list)
+    natoms: List = field(default_factory=list)
+    cells: List = field(default_factory=list)
+    indices: List = field(default_factory=list)
+    forces: List = field(default_factory=list)
+    mean_forces: List = field(default_factory=list)
+    velocities: List = field(default_factory=list)
+    mean_velocities: List = field(default_factory=list)
+    unwrapped_positions: List = field(default_factory=list)
+    mean_unwrapped_positions: List = field(default_factory=list)
+    positions: List = field(default_factory=list)
+    computes: Dict = field(default_factory=dict)
 
 
 def to_amat(l_list: Union[np.ndarray, List]) -> List:

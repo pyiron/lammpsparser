@@ -192,7 +192,7 @@ def lammps_file_interface_function(
         )
         if read_restart_file:
             lmp_str_lst += ["reset_timestep 0"]
-        lmp_str_lst += ["run {} ".format(n_ionic_steps)]
+        lmp_str_lst += [f"run {n_ionic_steps} "]
         last_step_is_regular_dump = n_ionic_steps % calc_kwargs.get("n_print", 1) == 0
         if dump_final_structure and not last_step_is_regular_dump:
             lmp_str_lst += [

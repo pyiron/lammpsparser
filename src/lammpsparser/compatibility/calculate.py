@@ -103,7 +103,7 @@ def calc_md(
             raise ValueError(
                 "At most two temperatures can be provided "
                 "(for a linearly ramping target temperature), "
-                "but got {}".format(len(temperature))
+                f"but got {len(temperature)}"
             )
         temperature *= temperature_units
 
@@ -128,35 +128,24 @@ def calc_md(
         )
 
         if np.isscalar(pressure):
-            pressure_string = " iso {0} {0} {1}".format(
-                pressure, pressure_damping_timescale
-            )
+            pressure_string = f" iso {pressure} {pressure} {pressure_damping_timescale}"
         else:
             pressure_string = ""
             for ii, (coord, value) in enumerate(
                 zip(["x", "y", "z", "xy", "xz", "yz"], pressure)
             ):
                 if value is not None:
-                    pressure_string += " {0} {1} {1} {2}".format(
-                        coord, value, pressure_damping_timescale
+                    pressure_string += (
+                        f" {coord} {value} {value} {pressure_damping_timescale}"
                     )
                     # if ii > 2:
                     #     force_skewed = True
 
         if langevin:  # NPT(Langevin)
             fix_ensemble_str = "fix ensemble all nph" + pressure_string
-            thermo_str = "fix langevin all langevin {0} {1} {2} {3} zero yes".format(
-                str(temperature[0]),
-                str(temperature[1]),
-                str(temperature_damping_timescale),
-                str(seed),
-            )
+            thermo_str = f"fix langevin all langevin {temperature[0]!s} {temperature[1]!s} {temperature_damping_timescale!s} {seed!s} zero yes"
         else:  # NPT(Nose-Hoover)
-            fix_ensemble_str = "fix ensemble all npt temp {0} {1} {2}".format(
-                str(temperature[0]),
-                str(temperature[1]),
-                str(temperature_damping_timescale),
-            )
+            fix_ensemble_str = f"fix ensemble all npt temp {temperature[0]!s} {temperature[1]!s} {temperature_damping_timescale!s}"
             fix_ensemble_str += pressure_string
     elif temperature is not None:  # NVT
         if temperature.min() <= 0:
@@ -166,18 +155,9 @@ def calc_md(
 
         if langevin:  # NVT(Langevin)
             fix_ensemble_str = "fix ensemble all nve"
-            thermo_str = "fix langevin all langevin {0} {1} {2} {3} zero yes".format(
-                str(temperature[0]),
-                str(temperature[1]),
-                str(temperature_damping_timescale),
-                str(seed),
-            )
+            thermo_str = f"fix langevin all langevin {temperature[0]!s} {temperature[1]!s} {temperature_damping_timescale!s} {seed!s} zero yes"
         else:  # NVT(Nose-Hoover)
-            fix_ensemble_str = "fix ensemble all nvt temp {0} {1} {2}".format(
-                str(temperature[0]),
-                str(temperature[1]),
-                str(temperature_damping_timescale),
-            )
+            fix_ensemble_str = f"fix ensemble all nvt temp {temperature[0]!s} {temperature[1]!s} {temperature_damping_timescale!s}"
     else:  # NVE
         if langevin:
             warnings.warn("Temperature not set; Langevin ignored.")
@@ -190,8 +170,8 @@ def calc_md(
     if thermo_str != "":
         line_lst.append(thermo_str)
 
-    line_lst.append("variable thermotime equal {} ".format(n_print))
-    line_lst.append("timestep {}".format(time_step))
+    line_lst.append(f"variable thermotime equal {n_print} ")
+    line_lst.append(f"timestep {time_step}")
     if initial_temperature is not None and initial_temperature > 0:
         line_lst.append(
             _set_initial_velocity(
@@ -256,7 +236,7 @@ def calc_minimize(
     ionic_energy_tolerance *= energy_units
     ionic_force_tolerance *= force_units
 
-    line_lst = ["variable thermotime equal {} ".format(n_print)]
+    line_lst = [f"variable thermotime equal {n_print} "]
     line_lst += _get_thermo()
     if pressure is not None:
         if rotation_matrix is None:
@@ -274,14 +254,14 @@ def calc_minimize(
             pressure=pressure, rotation_matrix=rotation_matrix, units=units
         )
         if np.isscalar(pressure):
-            str_press = " iso {}".format(float(cast(Any, pressure)))
+            str_press = f" iso {float(cast(Any, pressure))}"
         else:
             str_press = ""
             for ii, (press, str_axis) in enumerate(
                 zip(pressure, ["x", "y", "z", "xy", "xz", "yz"])
             ):
                 if press is not None:
-                    str_press += " {} {}".format(str_axis, press)
+                    str_press += f" {str_axis} {press}"
                     # if ii > 2:
                     #     force_skewed = True
             if len(str_press) > 1:
@@ -429,7 +409,7 @@ def _pressure_to_lammps(pressure, rotation_matrix, units="metal"):
     if len(pressure) > 6:
         raise ValueError(
             "Pressure can have a maximum of 6 values, (x, y, z, xy, xz, and yz), but got "
-            + "{}".format(len(pressure))
+            + f"{len(pressure)}"
         )
     pressure = [float(p) if p is not None else None for p in pressure]
     pressure += (6 - len(pressure)) * [None]

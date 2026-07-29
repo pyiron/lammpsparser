@@ -579,7 +579,7 @@ def write_lammps_datafile(
             (default), ``"charge"``, ``"bond"``, or ``"full"``.
     """
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
-    lammps_str.el_eam_lst = cast("list[str]", list(potential_elements))
+    lammps_str.el_eam_lst = cast(list[str], list(potential_elements))
     lammps_str.structure = structure
     lammps_str.write_file(file_name=file_name, cwd=working_directory)
 

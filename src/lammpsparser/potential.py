@@ -217,9 +217,7 @@ class LammpsPotentialFile(PotentialAbstract):
             ]
         return None
 
-    def find_default(
-        self, element: set[str] | list[str] | str
-    ) -> pandas.DataFrame:
+    def find_default(self, element: set[str] | list[str] | str) -> pandas.DataFrame:
         """
         Find the potentials
 

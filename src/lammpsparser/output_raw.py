@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 import warnings
 from dataclasses import asdict, dataclass, field
 from io import StringIO
@@ -162,7 +163,7 @@ def parse_raw_dump_from_text(file_name: str) -> dict:
         - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
         - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
     """
-    with open(file_name, "r") as f:
+    with pathlib.Path(file_name).open("r") as f:
         dump = DumpData()
 
         for line in f:
@@ -302,7 +303,7 @@ def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
         are present a ``LogStep`` column (integer run index, 0-based) is
         appended.
     """
-    with open(file_name, "r") as f:
+    with pathlib.Path(file_name).open("r") as f:
         dfs = []
         read_thermo = False
         for line in f:

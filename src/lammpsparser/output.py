@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import warnings
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -200,7 +202,7 @@ def _parse_dump(
         RuntimeError: If an H5MD file is present but the prism is not orthorhombic.
         FileNotFoundError: If neither dump file exists.
     """
-    if os.path.isfile(dump_h5_full_file_name):
+    if pathlib.Path(dump_h5_full_file_name).is_file():
         if not _check_ortho_prism(prism=prism):
             raise RuntimeError(
                 "The Lammps output will not be mapped back onto the structure correctly."
@@ -208,7 +210,7 @@ def _parse_dump(
         return parse_raw_dump_from_h5md(
             file_name=dump_h5_full_file_name,
         )
-    elif os.path.exists(dump_out_full_file_name):
+    if pathlib.Path(dump_out_full_file_name).exists():
         return _collect_dump_from_text(
             file_name=dump_out_full_file_name,
             prism=prism,
@@ -216,10 +218,9 @@ def _parse_dump(
             potential_elements=potential_elements,
             remap_indices_funct=remap_indices_funct,
         )
-    else:
-        raise FileNotFoundError(
-            f"Neither {dump_h5_full_file_name} nor {dump_out_full_file_name} exist."
-        )
+    raise FileNotFoundError(
+        f"Neither {dump_h5_full_file_name} nor {dump_out_full_file_name} exist."
+    )
 
 
 def _collect_dump_from_text(
@@ -306,13 +307,12 @@ def _parse_log(
     Raises:
         (RuntimeError): If there are "ERROR" tags in the log.
     """
-    if os.path.exists(log_lammps_full_file_name):
+    if pathlib.Path(log_lammps_full_file_name).exists():
         return _collect_output_log(
             file_name=log_lammps_full_file_name,
             prism=prism,
         )
-    else:
-        return None, None, None
+    return None, None, None
 
 
 def _collect_output_log(

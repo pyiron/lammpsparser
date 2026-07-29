@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import decimal as dec
+import pathlib
 import posixpath
 import warnings
 from typing import Any, cast
@@ -524,7 +525,7 @@ class LammpsStructure:
         if cwd is not None:
             file_name = posixpath.join(cwd, file_name)
 
-        with open(file_name, "w") as f:
+        with pathlib.Path(file_name).open("w") as f:
             f.writelines(self._string_input)
 
 
@@ -578,7 +579,7 @@ def write_lammps_datafile(
             (default), ``"charge"``, ``"bond"``, or ``"full"``.
     """
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
-    lammps_str.el_eam_lst = cast(list[str], list(potential_elements))
+    lammps_str.el_eam_lst = cast("list[str]", list(potential_elements))
     lammps_str.structure = structure
     lammps_str.write_file(file_name=file_name, cwd=working_directory)
 

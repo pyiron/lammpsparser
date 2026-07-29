@@ -1,6 +1,7 @@
 import os
-import unittest
+import pathlib
 import shutil
+import unittest
 
 import numpy as np
 from ase.build import bulk
@@ -36,7 +37,7 @@ class TestLammpsIntegration(unittest.TestCase):
         self.working_directory = os.path.abspath("lmp_working_directory")
 
     def tearDown(self):
-        if os.path.exists(self.working_directory):
+        if pathlib.Path(self.working_directory).exists():
             shutil.rmtree(self.working_directory)
 
     def test_lammps_integration(self):

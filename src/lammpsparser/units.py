@@ -237,9 +237,8 @@ class UnitConverter:
                 np.array(array) * self.lammps_to_pyiron(quantity_dict[label]),
                 dtype=dtype_dict[label],
             )
-        else:
-            warnings.warn(
-                message="Warning: Couldn't determine the LAMMPS to pyiron unit conversion type of quantity "
-                f"{label}. Returning un-normalized quantity"
-            )
-            return np.array(array)
+        warnings.warn(
+            message="Warning: Couldn't determine the LAMMPS to pyiron unit conversion type of quantity "
+            f"{label}. Returning un-normalized quantity"
+        )
+        return np.array(array)

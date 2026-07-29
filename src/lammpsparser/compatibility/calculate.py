@@ -245,16 +245,15 @@ def calc_minimize(
                     "No rotation matrix given while trying to convert pressure. "
                     "This is most likely due to no structure being defined."
                 )
-            else:
-                rotation_matrix, structure = _get_rotation_matrix(
-                    structure=structure, pressure=pressure
-                )
+            rotation_matrix, structure = _get_rotation_matrix(
+                structure=structure, pressure=pressure
+            )
         # force_skewed = False
         pressure = _pressure_to_lammps(
             pressure=pressure, rotation_matrix=rotation_matrix, units=units
         )
         if np.isscalar(pressure):
-            str_press = f" iso {float(cast(Any, pressure))}"
+            str_press = f" iso {float(cast('Any', pressure))}"
         else:
             str_press = ""
             for ii, (press, str_axis) in enumerate(

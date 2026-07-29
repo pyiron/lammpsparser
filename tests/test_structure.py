@@ -1,25 +1,28 @@
-import unittest
-import numpy as np
-import os
-import sys
 import importlib.util
+import os
+import pathlib
+import sys
 import types
+import unittest
 from shutil import rmtree
 from unittest.mock import patch
-from ase.build import bulk
+
+import numpy as np
 from ase.atoms import Atoms
-from lammpsparser.structure import (
-    structure_to_lammps,
-    UnfoldingPrism,
-    LammpsStructure,
-)
+from ase.build import bulk
+
 from lammpsparser import write_lammps_structure
+from lammpsparser.structure import (
+    LammpsStructure,
+    UnfoldingPrism,
+    structure_to_lammps,
+)
 
 
 class TestLammpsStructure(unittest.TestCase):
     def setUp(self):
         self.output_folder = os.path.abspath(os.path.join(__file__, "..", "structure"))
-        os.makedirs(self.output_folder, exist_ok=True)
+        pathlib.Path(self.output_folder).mkdir(exist_ok=True, parents=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -103,7 +106,7 @@ class TestLammpsStructure(unittest.TestCase):
             units="metal",
             working_directory=self.output_folder,
         )
-        with open(os.path.join(self.output_folder, "lammps.data"), "r") as f:
+        with pathlib.Path(os.path.join(self.output_folder, "lammps.data")).open() as f:
             self.assertEqual(
                 [
                     l
@@ -144,7 +147,7 @@ class TestLammpsStructure(unittest.TestCase):
             units="metal",
             working_directory=self.output_folder,
         )
-        with open(os.path.join(self.output_folder, "lammps_cubic.data"), "r") as f:
+        with pathlib.Path(os.path.join(self.output_folder, "lammps_cubic.data")).open() as f:
             self.assertEqual(
                 f.readlines(),
                 [

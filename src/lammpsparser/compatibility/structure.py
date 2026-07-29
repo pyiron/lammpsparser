@@ -224,9 +224,7 @@ class LammpsStructureCompatibility(LammpsStructure):
                 el_1_list = select_index(structure=self._structure, element=element)
                 if el_1_list is not None and len(el_1_list) > 0:
                     for i, v in enumerate(val["element_list"]):
-                        el_2_list = select_index(
-                            structure=self._structure, element=v
-                        )
+                        el_2_list = select_index(structure=self._structure, element=v)
                         cutoff_dist = val["cutoff_list"][i]
                         for j, ind in enumerate(
                             np.array(neighbors.indices, dtype=object)[el_1_list]

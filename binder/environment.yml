@@ -5,7 +5,7 @@ dependencies:
 - ase =3.29.0
 - h5py =3.16.0
 - numpy =2.4.3
-- pandas =3.0.2
+- pandas =3.0.5
 - scipy =1.17.1
 - lammps =2024.08.29=*_mpi_openmpi_*
 - hatchling =1.31.0

@@ -253,7 +253,7 @@ def calc_minimize(
             pressure=pressure, rotation_matrix=rotation_matrix, units=units
         )
         if np.isscalar(pressure):
-            str_press = f" iso {float(cast('Any', pressure))}"
+            str_press = f" iso {float(cast(Any, pressure))}"
         else:
             str_press = ""
             for ii, (press, str_axis) in enumerate(

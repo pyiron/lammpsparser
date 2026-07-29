@@ -147,7 +147,9 @@ class TestLammpsStructure(unittest.TestCase):
             units="metal",
             working_directory=self.output_folder,
         )
-        with pathlib.Path(os.path.join(self.output_folder, "lammps_cubic.data")).open() as f:
+        with pathlib.Path(
+            os.path.join(self.output_folder, "lammps_cubic.data")
+        ).open() as f:
             self.assertEqual(
                 f.readlines(),
                 [

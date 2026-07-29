@@ -142,11 +142,14 @@ class TestLammpsStructureCompatibilitySetterBond(unittest.TestCase):
         lsc = LammpsStructureCompatibility(atom_type="bond")
         lsc.el_eam_lst = ["Fe"]
         lsc._structure = _Dummy1D()
-        with patch.object(
-            LammpsStructureCompatibility,
-            "rotate_positions",
-            return_value=[(0.0,), (1.0,)],
-        ), self.assertRaises(ValueError):
+        with (
+            patch.object(
+                LammpsStructureCompatibility,
+                "rotate_positions",
+                return_value=[(0.0,), (1.0,)],
+            ),
+            self.assertRaises(ValueError),
+        ):
             lsc.structure_bond()
 
 

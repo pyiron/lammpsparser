@@ -54,7 +54,7 @@ class LammpsStructureCompatibility(LammpsStructure):
     def molecule_ids(self) -> list[int] | np.ndarray:
         """Per-atom molecule IDs; defaults to all atoms in a single molecule."""
         if self._molecule_ids is None or len(self._molecule_ids) == 0:
-            return np.ones(len(cast("Atoms", self._structure)), dtype=int)
+            return np.ones(len(cast(Atoms, self._structure)), dtype=int)
         return self._molecule_ids
 
     @molecule_ids.setter

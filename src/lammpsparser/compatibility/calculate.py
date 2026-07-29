@@ -67,7 +67,7 @@ def calc_md(
         rotation_matrix (numpy.ndarray): The rotation matrix from the ASE to Lammps coordinate
             frame.
     """
-    if units not in LAMMPS_UNIT_CONVERSIONS.keys():
+    if units not in LAMMPS_UNIT_CONVERSIONS:
         raise NotImplementedError
     time_units = LAMMPS_UNIT_CONVERSIONS[units]["time"]
     temperature_units = LAMMPS_UNIT_CONVERSIONS[units]["temperature"]
@@ -228,7 +228,7 @@ def calc_minimize(
         warnings.warn("n_print larger than max_iter, adjusting to n_print=max_iter")
         n_print = max_iter
 
-    if units not in LAMMPS_UNIT_CONVERSIONS.keys():
+    if units not in LAMMPS_UNIT_CONVERSIONS:
         raise NotImplementedError
     energy_units = LAMMPS_UNIT_CONVERSIONS[units]["energy"]
     force_units = LAMMPS_UNIT_CONVERSIONS[units]["force"]

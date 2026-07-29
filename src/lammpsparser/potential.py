@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Optional, Union
 
 import pandas
 from ase.atoms import Atoms
@@ -49,8 +50,8 @@ class PotentialAbstract:
     def __init__(
         self,
         potential_df: pandas.DataFrame,
-        default_df: Optional[pandas.DataFrame] = None,
-        selected_atoms: Optional[list[str]] = None,
+        default_df: pandas.DataFrame | None = None,
+        selected_atoms: list[str] | None = None,
     ):
         self._potential_df = potential_df
         self._default_df = default_df
@@ -59,7 +60,7 @@ class PotentialAbstract:
         else:
             self._selected_atoms = []
 
-    def find(self, element: Union[set[str], list[str], str]) -> pandas.DataFrame:
+    def find(self, element: set[str] | list[str] | str) -> pandas.DataFrame:
         """
         Find the potentials
 
@@ -216,9 +217,7 @@ class LammpsPotentialFile(PotentialAbstract):
             ]
         return None
 
-    def find_default(
-        self, element: Union[set[str], list[str], str]
-    ) -> pandas.DataFrame:
+    def find_default(self, element: set[str] | list[str] | str) -> pandas.DataFrame:
         """
         Find the potentials
 
@@ -455,7 +454,7 @@ def get_potential_dataframe(structure: Atoms, resource_path=None):
     )
 
 
-def get_potential_by_name(potential_name: str, resource_path: Optional[str] = None):
+def get_potential_by_name(potential_name: str, resource_path: str | None = None):
     """
     Retrieve a single potential row by its exact name string.
 
@@ -483,7 +482,7 @@ def get_potential_by_name(potential_name: str, resource_path: Optional[str] = No
 
 def validate_potential_dataframe(
     potential_dataframe: pandas.DataFrame,
-) -> Union[pandas.DataFrame, pandas.Series]:
+) -> pandas.DataFrame | pandas.Series:
     """
     Ensure a potential selection contains exactly one potential.
 

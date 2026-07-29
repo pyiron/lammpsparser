@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Union
 
 import numpy as np
 
@@ -41,20 +42,20 @@ class CalcMDInput:
             frame.  Derived automatically when ``None``.
     """
 
-    temperature: Optional[Union[float, list]] = None
-    pressure: Optional[Union[float, list, np.ndarray]] = None
+    temperature: float | list | None = None
+    pressure: float | list | np.ndarray | None = None
     n_ionic_steps: int = 1
     time_step: float = 1.0
     n_print: int = 100
     temperature_damping_timescale: float = 100.0
     pressure_damping_timescale: float = 1000.0
     seed: int = 80996
-    tloop: Optional[int] = None
-    initial_temperature: Optional[float] = None
+    tloop: int | None = None
+    initial_temperature: float | None = None
     langevin: bool = False
-    delta_temp: Optional[float] = None
-    delta_press: Optional[float] = None
-    rotation_matrix: Optional[Union[list, np.ndarray]] = None
+    delta_temp: float | None = None
+    delta_press: float | None = None
+    rotation_matrix: list | np.ndarray | None = None
 
 
 @dataclass
@@ -81,7 +82,7 @@ class CalcMinimizeInput:
     ionic_energy_tolerance: float = 0.0
     ionic_force_tolerance: float = 1e-4
     max_iter: int = 100000
-    pressure: Optional[Union[float, list, np.ndarray]] = None
+    pressure: float | list | np.ndarray | None = None
     n_print: int = 1
     style: str = "cg"
-    rotation_matrix: Optional[Union[list, np.ndarray]] = None
+    rotation_matrix: list | np.ndarray | None = None

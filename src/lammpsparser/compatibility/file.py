@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess
 from dataclasses import asdict
-from typing import Optional, Union
 
 import pandas
 from ase.atoms import Atoms
@@ -24,12 +25,12 @@ def lammps_file_interface_function(
     structure: Atoms,
     potential: str,
     calc_mode: str = "static",
-    calc_kwargs: Optional[dict] = None,
-    calc_dataclass: Optional[Union[CalcMDInput, CalcMinimizeInput]] = None,
+    calc_kwargs: dict | None = None,
+    calc_dataclass: CalcMDInput | CalcMinimizeInput | None = None,
     units: str = "metal",
-    lmp_command: Optional[str] = None,
-    resource_path: Optional[str] = None,
-    input_control_file: Optional[dict] = None,
+    lmp_command: str | None = None,
+    resource_path: str | None = None,
+    input_control_file: dict | None = None,
     write_restart_file: bool = False,
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
@@ -178,7 +179,7 @@ def lammps_file_interface_function(
                 structure=structure, calc_md=True
             ).items()
         ]
-        if "n_ionic_steps" in calc_kwargs.keys():
+        if "n_ionic_steps" in calc_kwargs:
             n_ionic_steps = int(calc_kwargs.pop("n_ionic_steps"))
         else:
             n_ionic_steps = 1
@@ -305,8 +306,8 @@ def lammps_file_initialization(
 
 
 def _modify_input_dict(
-    input_control_file: Optional[dict] = None,
-    lmp_str_lst: list[str] = [],
+    input_control_file: dict | None = None,
+    lmp_str_lst: list[str] | None = None,
 ):
     """
     Apply user-supplied overrides to a LAMMPS input line list.
@@ -325,13 +326,15 @@ def _modify_input_dict(
     Returns:
         list[str]: Modified (or unchanged) list of LAMMPS input lines.
     """
+    if lmp_str_lst is None:
+        lmp_str_lst = []
     if input_control_file is not None:
         lmp_tmp_lst, keys_used = [], []
         for line in lmp_str_lst:
             ls = line.split()
             if len(ls) >= 1:  # Remove empty lines
                 key = ls[0]
-                if key in input_control_file.keys():
+                if key in input_control_file:
                     lmp_tmp_lst.append(key + " " + input_control_file[key])
                     keys_used.append(key)
                 else:
@@ -345,7 +348,7 @@ def _modify_input_dict(
         return lmp_str_lst
 
 
-def _get_potential(potential, resource_path: Optional[str] = None):
+def _get_potential(potential, resource_path: str | None = None):
     """
     Resolve a potential specification to LAMMPS input lines and species list.
 

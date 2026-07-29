@@ -1,22 +1,24 @@
 import os
-import unittest
+import pathlib
 import shutil
 import tempfile
+import unittest
 from unittest import mock
 
-from ase.build import bulk
 import pandas
+from ase.build import bulk
+
 from lammpsparser.potential import (
-    validate_potential_dataframe,
-    get_potential_dataframe,
-    get_potential_by_name,
-    convert_path_to_abs_posix,
-    get_resource_path_from_conda,
-    find_potential_file_base,
-    view_potentials,
-    PotentialAbstract,
     LammpsPotentialFile,
+    PotentialAbstract,
     PotentialAvailable,
+    convert_path_to_abs_posix,
+    find_potential_file_base,
+    get_potential_by_name,
+    get_potential_dataframe,
+    get_resource_path_from_conda,
+    validate_potential_dataframe,
+    view_potentials,
 )
 
 
@@ -89,7 +91,7 @@ class TestPotential(unittest.TestCase):
         with self.assertRaises(ValueError):
             get_resource_path_from_conda()
 
-        os.makedirs("/tmp/conda/share/iprpy")
+        pathlib.Path("/tmp/conda/share/iprpy").mkdir(parents=True)
         self.assertEqual(
             get_resource_path_from_conda().replace("\\", "/"), "/tmp/conda/share/iprpy"
         )
@@ -103,11 +105,11 @@ class TestPotential(unittest.TestCase):
     def test_find_potential_file_base(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             resource_path = os.path.join(tmpdir, "resources")
-            os.makedirs(resource_path)
+            pathlib.Path(resource_path).mkdir(parents=True)
             rel_path = "potentials"
-            os.makedirs(os.path.join(resource_path, rel_path))
+            pathlib.Path(os.path.join(resource_path, rel_path)).mkdir(parents=True)
             file_path = os.path.join(resource_path, rel_path, "test.pot")
-            with open(file_path, "w") as f:
+            with pathlib.Path(file_path).open("w") as f:
                 f.write("test")
 
             self.assertEqual(
@@ -121,7 +123,7 @@ class TestPotential(unittest.TestCase):
 
             # Test finding file in direct path
             file_path_direct = os.path.join(resource_path, "test_direct.pot")
-            with open(file_path_direct, "w") as f:
+            with pathlib.Path(file_path_direct).open("w") as f:
                 f.write("test")
 
             self.assertEqual(

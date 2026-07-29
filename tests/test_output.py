@@ -1,16 +1,18 @@
-from ase.build import bulk
-import numpy as np
 import os
+import pathlib
 import unittest
+
+import numpy as np
+from ase.build import bulk
+
 from lammpsparser import parse_lammps_output_files
 from lammpsparser.output import (
-    remap_indices_ase,
-    _parse_dump,
     _collect_output_log,
+    _parse_dump,
+    remap_indices_ase,
 )
 from lammpsparser.output_raw import to_amat
 from lammpsparser.structure import UnfoldingPrism
-
 
 try:
     import h5py
@@ -674,7 +676,7 @@ class TestLammpsOutput(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write log file with extra "KinEng" column
             log_path = os.path.join(tmpdir, "log.lammps")
-            with open(log_path, "w") as f:
+            with pathlib.Path(log_path).open("w") as f:
                 f.write(log_content)
             # Copy dump.out from full_job into tmpdir
             import shutil

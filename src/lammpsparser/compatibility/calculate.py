@@ -245,10 +245,9 @@ def calc_minimize(
                     "No rotation matrix given while trying to convert pressure. "
                     "This is most likely due to no structure being defined."
                 )
-            else:
-                rotation_matrix, structure = _get_rotation_matrix(
-                    structure=structure, pressure=pressure
-                )
+            rotation_matrix, structure = _get_rotation_matrix(
+                structure=structure, pressure=pressure
+            )
         # force_skewed = False
         pressure = _pressure_to_lammps(
             pressure=pressure, rotation_matrix=rotation_matrix, units=units

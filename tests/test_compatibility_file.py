@@ -1,15 +1,18 @@
-import unittest
 import os
+import pathlib
 import shutil
-from ase.build import bulk
+import unittest
+
 import numpy as np
 import pandas
+from ase.build import bulk
+
+from lammpsparser.compatibility.data import CalcMDInput, CalcMinimizeInput
 from lammpsparser.compatibility.file import (
-    lammps_file_interface_function,
     _get_potential,
+    lammps_file_interface_function,
 )
 from lammpsparser.potential import get_potential_by_name
-from lammpsparser.compatibility.data import CalcMDInput, CalcMinimizeInput
 
 
 class TestCompatibilityFile(unittest.TestCase):
@@ -54,7 +57,7 @@ class TestCompatibilityFile(unittest.TestCase):
         )
 
     def tearDown(self):
-        if os.path.exists(self.working_dir):
+        if pathlib.Path(self.working_dir).exists():
             shutil.rmtree(self.working_dir)
 
     def test_calc_error(self):
@@ -158,7 +161,7 @@ class TestCompatibilityFile(unittest.TestCase):
         np.testing.assert_allclose(
             parsed_output["generic"]["pressures"][0], self.expected_first_pressure
         )
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -207,7 +210,7 @@ class TestCompatibilityFile(unittest.TestCase):
             dump_final_structure=n_ionic_steps % n_print != 0,
         )
         self.assertFalse(job_crashed)
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         self.assertIn(
             "write_dump all custom dump.out id type xsu ysu zsu fx fy fz vx vy vz "
@@ -241,7 +244,7 @@ class TestCompatibilityFile(unittest.TestCase):
             dump_final_structure=n_ionic_steps % n_print != 0,
         )
         self.assertFalse(job_crashed)
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         self.assertFalse(any(line.startswith("write_dump") for line in content))
 
@@ -267,7 +270,7 @@ class TestCompatibilityFile(unittest.TestCase):
             resource_path=os.path.join(self.static_path, "potential"),
         )
         self.assertFalse(job_crashed)
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         self.assertFalse(any(line.startswith("write_dump") for line in content))
 
@@ -314,7 +317,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         self.assertIn("neighbor 0.3 bin\n", content)
 
@@ -344,7 +347,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -388,7 +391,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -434,7 +437,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -472,7 +475,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -546,7 +549,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -608,7 +611,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -648,7 +651,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -688,7 +691,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",
@@ -729,7 +732,7 @@ class TestCompatibilityFile(unittest.TestCase):
         self.assertFalse(job_crashed)
         for key in self.keys:
             self.assertIn(key, parsed_output["generic"])
-        with open(self.working_dir + "/lmp.in", "r") as f:
+        with pathlib.Path(self.working_dir + "/lmp.in").open() as f:
             content = f.readlines()
         content_expected = [
             "units metal\n",

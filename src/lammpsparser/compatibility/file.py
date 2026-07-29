@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import shutil
 import subprocess
 from dataclasses import asdict
@@ -120,7 +121,7 @@ def lammps_file_interface_function(
             + " -in lmp.in"
         )
 
-    os.makedirs(working_directory, exist_ok=True)
+    pathlib.Path(working_directory).mkdir(exist_ok=True, parents=True)
     potential_lst, potential_replace, species = _get_potential(
         potential=potential, resource_path=resource_path
     )
@@ -233,7 +234,7 @@ def lammps_file_interface_function(
     if write_restart_file:
         lmp_str_lst.append(f"write_restart {os.path.basename(restart_file)}")
 
-    with open(os.path.join(working_directory, "lmp.in"), "w") as f:
+    with pathlib.Path(os.path.join(working_directory, "lmp.in")).open("w") as f:
         f.writelines([line + "\n" for line in lmp_str_lst])
 
     write_lammps_datafile(
@@ -344,8 +345,7 @@ def _modify_input_dict(
                 lmp_tmp_lst.append(k + " " + v)
 
         return lmp_tmp_lst
-    else:
-        return lmp_str_lst
+    return lmp_str_lst
 
 
 def _get_potential(potential, resource_path: str | None = None):

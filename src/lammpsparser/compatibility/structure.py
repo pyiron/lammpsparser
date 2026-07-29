@@ -81,7 +81,7 @@ class LammpsStructureCompatibility(LammpsStructure):
 
         elements = self._structure.get_chemical_symbols()
 
-        ## Standard atoms stuff
+        # Standard atoms stuff
         atoms = "Atoms \n\n"
         # atom_style bond
         # format: atom-ID, molecule-ID, atom_type, x, y, z
@@ -117,7 +117,7 @@ class LammpsStructureCompatibility(LammpsStructure):
         else:
             raise ValueError("dimension 1 not yet implemented")
 
-        ## Bond related.
+        # Bond related.
         # This seems independent from the lammps atom type ids, because bonds only use atom ids
         el_list = set(self._structure.get_chemical_symbols())
         el_dict = OrderedDict()
@@ -199,10 +199,7 @@ class LammpsStructureCompatibility(LammpsStructure):
                 for species_name in set(self.structure.get_chemical_symbols())
             }
         else:
-            q_dict = {
-                species_name: 0.0
-                for species_name in set(self.structure.get_chemical_symbols())
-            }
+            q_dict = dict.fromkeys(set(self.structure.get_chemical_symbols()), 0.0)
 
         bonds_lst, angles_lst = [], []
         bond_type_lst, angle_type_lst = [], []

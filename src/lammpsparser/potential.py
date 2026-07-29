@@ -277,8 +277,7 @@ class PotentialAvailable:
     def __getattr__(self, name):
         if name in self._list_of_potentials:
             return self._list_of_potentials[name]
-        else:
-            raise AttributeError
+        raise AttributeError
 
     def __dir__(self):
         return list(self._list_of_potentials.keys())
@@ -312,9 +311,9 @@ def find_potential_file_base(path, resource_path_lst, rel_path):
         for resource_path in resource_path_lst:
             path_direct = os.path.join(resource_path, path)
             path_indirect = os.path.join(resource_path, rel_path, path)
-            if os.path.exists(path_direct):
+            if Path(path_direct).exists():
                 return path_direct
-            elif os.path.exists(path_indirect):
+            if Path(path_indirect).exists():
                 return path_indirect
     raise ValueError(
         "Either the filename or the functional has to be defined.",
@@ -424,7 +423,7 @@ def get_resource_path_from_conda(
     for conda_var in env_variables:
         if conda_var in env:
             resource_path = os.path.join(env[conda_var], "share", "iprpy")
-            if os.path.exists(resource_path):
+            if Path(resource_path).exists():
                 return resource_path
     raise ValueError("No resource_path found" + potential_installation)
 
@@ -507,21 +506,19 @@ def validate_potential_dataframe(
     """
     if isinstance(potential_dataframe, pandas.Series):
         return potential_dataframe
-    elif isinstance(potential_dataframe, pandas.DataFrame):
+    if isinstance(potential_dataframe, pandas.DataFrame):
         if len(potential_dataframe) == 1:
             return potential_dataframe.iloc[0]
-        elif len(potential_dataframe) == 0:
+        if len(potential_dataframe) == 0:
             raise ValueError(
                 "The potential_dataframe is an empty pandas.DataFrame:",
                 potential_dataframe,
             )
-        else:
-            raise ValueError(
-                "The potential_dataframe contains more than one interatomic potential, please select one:",
-                potential_dataframe,
-            )
-    else:
-        raise TypeError(
-            "The potential_dataframe should be a pandas.DataFrame or pandas.Series, but instead it is of type:",
-            type(potential_dataframe),
+        raise ValueError(
+            "The potential_dataframe contains more than one interatomic potential, please select one:",
+            potential_dataframe,
         )
+    raise TypeError(
+        "The potential_dataframe should be a pandas.DataFrame or pandas.Series, but instead it is of type:",
+        type(potential_dataframe),
+    )

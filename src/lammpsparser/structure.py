@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import decimal as dec
+import pathlib
 import posixpath
 import warnings
 from typing import Any, cast
@@ -524,7 +525,7 @@ class LammpsStructure:
         if cwd is not None:
             file_name = posixpath.join(cwd, file_name)
 
-        with open(file_name, "w") as f:
+        with pathlib.Path(file_name).open("w") as f:
             f.writelines(self._string_input)
 
 

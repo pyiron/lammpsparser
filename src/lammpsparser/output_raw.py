@@ -182,7 +182,7 @@ def parse_raw_dump_from_text(file_name: str) -> dict:
 
             elif "ITEM: ATOMS" in line:
                 # get column names from line
-                columns = line.lstrip("ITEM: ATOMS").split()
+                columns = line.removeprefix("ITEM: ATOMS").split()
 
                 # Read line by line of snapshot into a string buffer
                 # Than parse using pandas for speed and column acces
@@ -269,7 +269,7 @@ def parse_raw_dump_from_text(file_name: str) -> dict:
                 for k in columns:
                     if k.startswith("c_"):
                         kk = k.replace("c_", "")
-                        if kk not in dump.computes.keys():
+                        if kk not in dump.computes:
                             dump.computes[kk] = []
                         dump.computes[kk].append(df[k].array)
 
@@ -313,7 +313,7 @@ def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
                 read_thermo = True
 
             if read_thermo:
-                if line.startswith("Loop") or line.startswith("ERROR"):
+                if line.startswith(("Loop", "ERROR")):
                     read_thermo = False
                     dfs.append(
                         pd.read_csv(StringIO(thermo_lines), sep="\\s+", engine="c")

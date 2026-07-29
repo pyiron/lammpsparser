@@ -138,7 +138,7 @@ def parse_lammps_output(
     hdf_generic = hdf_output["generic"]
     hdf_lammps = hdf_output["lammps"]
 
-    if "computes" in dump_dict.keys():
+    if "computes" in dump_dict:
         for k, v in dump_dict.pop("computes").items():
             hdf_generic[k] = convert_units(np.array(v), label=k)
 
@@ -360,21 +360,19 @@ def _collect_output_log(
         h5_dict[key] = key.replace("f_", "")
 
     df = df.rename(index=str, columns=h5_dict)
-    pressure_dict = dict()
+    pressure_dict = {}
     if all(
-        [
-            x in df.columns.values
-            for x in [
-                "Pxx",
-                "Pxy",
-                "Pxz",
-                "Pxy",
-                "Pyy",
-                "Pyz",
-                "Pxz",
-                "Pyz",
-                "Pzz",
-            ]
+        x in df.columns.values
+        for x in [
+            "Pxx",
+            "Pxy",
+            "Pxz",
+            "Pxy",
+            "Pyy",
+            "Pyz",
+            "Pxz",
+            "Pyz",
+            "Pzz",
         ]
     ):
         pressures = (

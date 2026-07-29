@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -18,8 +18,8 @@ from lammpsparser.units import UnitConverter
 
 
 def remap_indices_ase(
-    lammps_indices: Union[np.ndarray, List],
-    potential_elements: Union[np.ndarray, List],
+    lammps_indices: np.ndarray | list,
+    potential_elements: np.ndarray | list,
     structure: Atoms,
 ) -> np.ndarray:
     """
@@ -60,14 +60,14 @@ def remap_indices_ase(
 def parse_lammps_output(
     working_directory: str,
     structure: Atoms,
-    potential_elements: Union[np.ndarray, List],
+    potential_elements: np.ndarray | list,
     units: str,
-    prism: Optional[UnfoldingPrism] = None,
+    prism: UnfoldingPrism | None = None,
     dump_h5_file_name: str = "dump.h5",
     dump_out_file_name: str = "dump.out",
     log_lammps_file_name: str = "log.lammps",
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """
     Parse all output files from a finished LAMMPS calculation.
 
@@ -134,7 +134,7 @@ def parse_lammps_output(
 
     convert_units = UnitConverter(units).convert_array_to_pyiron_units
 
-    hdf_output: Dict[str, Dict[str, Any]] = {"generic": {}, "lammps": {}}
+    hdf_output: dict[str, dict[str, Any]] = {"generic": {}, "lammps": {}}
     hdf_generic = hdf_output["generic"]
     hdf_lammps = hdf_output["lammps"]
 
@@ -175,9 +175,9 @@ def _parse_dump(
     dump_out_full_file_name: str,
     prism: UnfoldingPrism,
     structure: Atoms,
-    potential_elements: Union[np.ndarray, List],
+    potential_elements: np.ndarray | list,
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Dispatch dump parsing to the correct reader (H5MD or text).
 
@@ -226,9 +226,9 @@ def _collect_dump_from_text(
     file_name: str,
     prism: UnfoldingPrism,
     structure: Atoms,
-    potential_elements: Union[np.ndarray, List],
+    potential_elements: np.ndarray | list,
     remap_indices_funct: Callable[..., np.ndarray] = remap_indices_ase,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Post-process a raw text dump dictionary: rotate vectors and remap indices.
 
@@ -254,7 +254,7 @@ def _collect_dump_from_text(
     """
     rotation_lammps2orig = prism.R.T
     dump_lammps_dict = parse_raw_dump_from_text(file_name=file_name)
-    dump_dict: Dict[str, Any] = {}
+    dump_dict: dict[str, Any] = {}
     for key, val in dump_lammps_dict.items():
         if key in ["cells"]:
             dump_dict[key] = [prism.unfold_cell(cell=cell) for cell in val]
@@ -287,7 +287,7 @@ def _collect_dump_from_text(
 
 def _parse_log(
     log_lammps_full_file_name: str, prism: UnfoldingPrism
-) -> Union[Tuple[List[str], Dict, pd.DataFrame], Tuple[None, None, None]]:
+) -> tuple[list[str], dict, pd.DataFrame] | tuple[None, None, None]:
     """
     If it exists, parses the lammps log file and either raises an exception if errors
     occurred or returns data. Just returns a tuple of Nones if there is no file at the
@@ -317,7 +317,7 @@ def _parse_log(
 
 def _collect_output_log(
     file_name: str, prism: UnfoldingPrism
-) -> Tuple[List[str], Dict, pd.DataFrame]:
+) -> tuple[list[str], dict, pd.DataFrame]:
     """
     Parse the LAMMPS log file and organise thermo data into generic and pressure outputs.
 

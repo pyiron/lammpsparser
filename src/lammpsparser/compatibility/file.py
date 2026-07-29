@@ -179,7 +179,7 @@ def lammps_file_interface_function(
                 structure=structure, calc_md=True
             ).items()
         ]
-        if "n_ionic_steps" in calc_kwargs.keys():
+        if "n_ionic_steps" in calc_kwargs:
             n_ionic_steps = int(calc_kwargs.pop("n_ionic_steps"))
         else:
             n_ionic_steps = 1
@@ -307,7 +307,7 @@ def lammps_file_initialization(
 
 def _modify_input_dict(
     input_control_file: dict | None = None,
-    lmp_str_lst: list[str] = [],
+    lmp_str_lst: list[str] | None = None,
 ):
     """
     Apply user-supplied overrides to a LAMMPS input line list.
@@ -326,13 +326,15 @@ def _modify_input_dict(
     Returns:
         list[str]: Modified (or unchanged) list of LAMMPS input lines.
     """
+    if lmp_str_lst is None:
+        lmp_str_lst = []
     if input_control_file is not None:
         lmp_tmp_lst, keys_used = [], []
         for line in lmp_str_lst:
             ls = line.split()
             if len(ls) >= 1:  # Remove empty lines
                 key = ls[0]
-                if key in input_control_file.keys():
+                if key in input_control_file:
                     lmp_tmp_lst.append(key + " " + input_control_file[key])
                     keys_used.append(key)
                 else:

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union, cast
+from typing import cast
 
 import numpy as np
 from ase.atoms import Atoms
@@ -12,15 +14,15 @@ from lammpsparser.structure import LammpsStructure
 class LammpsStructureCompatibility(LammpsStructure):
     def __init__(
         self,
-        bond_dict: Optional[Dict] = None,
+        bond_dict: dict | None = None,
         units: str = "metal",
         atom_type: str = "atomic",
     ):
         super().__init__(bond_dict=bond_dict, units=units, atom_type=atom_type)
-        self._molecule_ids: Optional[List[int]] = []
+        self._molecule_ids: list[int] | None = []
 
     @property
-    def structure(self) -> Optional[Atoms]:
+    def structure(self) -> Atoms | None:
         """The ASE :class:`~ase.atoms.Atoms` object associated with this instance."""
         return self._structure
 
@@ -49,14 +51,14 @@ class LammpsStructureCompatibility(LammpsStructure):
         self._string_input = input_str + self._get_velocities_input_string()
 
     @property
-    def molecule_ids(self) -> Union[List[int], np.ndarray]:
+    def molecule_ids(self) -> list[int] | np.ndarray:
         """Per-atom molecule IDs; defaults to all atoms in a single molecule."""
         if self._molecule_ids is None or len(self._molecule_ids) == 0:
             return np.ones(len(cast(Atoms, self._structure)), dtype=int)
         return self._molecule_ids
 
     @molecule_ids.setter
-    def molecule_ids(self, molecule_ids: Optional[List[int]]):
+    def molecule_ids(self, molecule_ids: list[int] | None):
         self._molecule_ids = molecule_ids
 
     def structure_bond(self):
@@ -207,7 +209,7 @@ class LammpsStructureCompatibility(LammpsStructure):
         # Using a cutoff distance to draw the bonds instead of the number of neighbors
         # Only if any bonds are defined
         if self._bond_dict is not None and len(self._bond_dict.keys()) > 0:
-            cutoff_list = list()
+            cutoff_list = []
             for val in self._bond_dict.values():
                 cutoff_list.append(np.max(val["cutoff_list"]))
             max_cutoff = np.max(cutoff_list)
@@ -220,45 +222,44 @@ class LammpsStructureCompatibility(LammpsStructure):
             # Go through all elements for which bonds are defined
             for element, val in self._bond_dict.items():
                 el_1_list = select_index(structure=self._structure, element=element)
-                if el_1_list is not None:
-                    if len(el_1_list) > 0:
-                        for i, v in enumerate(val["element_list"]):
-                            el_2_list = select_index(
-                                structure=self._structure, element=v
+                if el_1_list is not None and len(el_1_list) > 0:
+                    for i, v in enumerate(val["element_list"]):
+                        el_2_list = select_index(
+                            structure=self._structure, element=v
+                        )
+                        cutoff_dist = val["cutoff_list"][i]
+                        for j, ind in enumerate(
+                            np.array(neighbors.indices, dtype=object)[el_1_list]
+                        ):
+                            # Only chose those indices within the cutoff distance and which belong
+                            # to the species defined in the element_list
+                            # i is the index of each bond type, and j is the element index
+                            id_el = el_1_list[j]
+                            bool_1 = (
+                                np.array(neighbors.distances, dtype=object)[id_el]
+                                <= cutoff_dist
                             )
-                            cutoff_dist = val["cutoff_list"][i]
-                            for j, ind in enumerate(
-                                np.array(neighbors.indices, dtype=object)[el_1_list]
+                            act_ind = ind[bool_1]
+                            bool_2 = np.isin(act_ind, el_2_list)
+                            final_ind = act_ind[bool_2]
+                            # Get the bond and angle type
+                            bond_type = val["bond_type_list"][i]
+                            angle_type = val["angle_type_list"][i]
+                            # Draw only maximum allowed bonds
+                            final_ind = final_ind[: val["max_bond_list"][i]]
+                            for fi in final_ind:
+                                bonds_lst.append([id_el + 1, fi + 1])
+                                bond_type_lst.append(bond_type)
+                            # Draw angles if at least 2 bonds are present and if an angle type is defined for this
+                            # particular set of bonds
+                            if (
+                                len(final_ind) >= 2
+                                and val["angle_type_list"][i] is not None
                             ):
-                                # Only chose those indices within the cutoff distance and which belong
-                                # to the species defined in the element_list
-                                # i is the index of each bond type, and j is the element index
-                                id_el = el_1_list[j]
-                                bool_1 = (
-                                    np.array(neighbors.distances, dtype=object)[id_el]
-                                    <= cutoff_dist
+                                angles_lst.append(
+                                    [final_ind[0] + 1, id_el + 1, final_ind[1] + 1]
                                 )
-                                act_ind = ind[bool_1]
-                                bool_2 = np.isin(act_ind, el_2_list)
-                                final_ind = act_ind[bool_2]
-                                # Get the bond and angle type
-                                bond_type = val["bond_type_list"][i]
-                                angle_type = val["angle_type_list"][i]
-                                # Draw only maximum allowed bonds
-                                final_ind = final_ind[: val["max_bond_list"][i]]
-                                for fi in final_ind:
-                                    bonds_lst.append([id_el + 1, fi + 1])
-                                    bond_type_lst.append(bond_type)
-                                # Draw angles if at least 2 bonds are present and if an angle type is defined for this
-                                # particular set of bonds
-                                if (
-                                    len(final_ind) >= 2
-                                    and val["angle_type_list"][i] is not None
-                                ):
-                                    angles_lst.append(
-                                        [final_ind[0] + 1, id_el + 1, final_ind[1] + 1]
-                                    )
-                                    angle_type_lst.append(angle_type)
+                                angle_type_lst.append(angle_type)
 
         if len(bond_type_lst) == 0:
             num_bond_types = 0

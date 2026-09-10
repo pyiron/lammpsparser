@@ -1,8 +1,9 @@
 import unittest
+
 from src.lammpsparser.output_raw import (
-    to_amat,
     parse_raw_dump_from_text,
     parse_raw_lammps_log,
+    to_amat,
 )
 
 

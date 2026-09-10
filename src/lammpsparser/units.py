@@ -1,11 +1,10 @@
-# coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 from __future__ import annotations
 
 import warnings
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import numpy as np
 import scipy.constants as spc
@@ -53,7 +52,7 @@ GPA_TO_PA = spc.giga
 # Pyrion units source doc: https://pyiron.readthedocs.io/en/latest/source/faq.html
 # At time of writing, not all these conversion factors are used, but may be helpful later.
 
-LAMMPS_UNIT_CONVERSIONS: Dict[str, Dict[str, float]] = {
+LAMMPS_UNIT_CONVERSIONS: dict[str, dict[str, float]] = {
     "metal": {
         "mass": 1.0,
         "distance": 1.0,
@@ -123,7 +122,7 @@ for values in LAMMPS_UNIT_CONVERSIONS.values():
 
 
 # Hard coded list of all quantities exposed by lammpsparser and the type of quantity it stores (Expand if necessary)
-_conversion_dict: Dict[str, List[str]] = dict()
+_conversion_dict: dict[str, list[str]] = {}
 _conversion_dict["distance"] = [
     "positions",
     "cells",
@@ -149,13 +148,13 @@ _conversion_dict["dimensionless_integer_quantity"] = ["steps", "indices"]
 _conversion_dict["natoms"] = ["natoms"]
 
 # Reverse _conversion_dict
-quantity_dict: Dict[str, str] = dict()
+quantity_dict: dict[str, str] = {}
 for key, val in _conversion_dict.items():
     for v in val:
         quantity_dict[v] = key
 
 # Data type dict to ensure that the units are converted to the proper units
-dtype_dict: Dict[str, Any] = dict()
+dtype_dict: dict[str, Any] = {}
 for key, val in _conversion_dict.items():
     for v in val:
         # Everything except dimensionless integer quantities are stored as floats
@@ -177,7 +176,7 @@ class UnitConverter:
 
         """
         self._units = units
-        self._dict: Dict[str, float] = LAMMPS_UNIT_CONVERSIONS[self._units]
+        self._dict: dict[str, float] = LAMMPS_UNIT_CONVERSIONS[self._units]
 
     def __getitem__(self, quantity: str) -> float:
         """
@@ -220,7 +219,7 @@ class UnitConverter:
         return self[quantity]
 
     def convert_array_to_pyiron_units(
-        self, array: Union[np.ndarray, list], label: str
+        self, array: np.ndarray | list, label: str
     ) -> np.ndarray:
         """
         Convert a labelled numpy array into pyiron units based on the physical quantity the label corresponds to
@@ -233,14 +232,13 @@ class UnitConverter:
             ndarray: The array after conversion
 
         """
-        if label in quantity_dict.keys():
+        if label in quantity_dict:
             return np.array(
                 np.array(array) * self.lammps_to_pyiron(quantity_dict[label]),
                 dtype=dtype_dict[label],
             )
-        else:
-            warnings.warn(
-                message="Warning: Couldn't determine the LAMMPS to pyiron unit conversion type of quantity "
-                f"{label}. Returning un-normalized quantity"
-            )
-            return np.array(array)
+        warnings.warn(
+            message="Warning: Couldn't determine the LAMMPS to pyiron unit conversion type of quantity "
+            f"{label}. Returning un-normalized quantity"
+        )
+        return np.array(array)

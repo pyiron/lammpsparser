@@ -1,13 +1,13 @@
-# coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 from __future__ import annotations
 
 import decimal as dec
+import pathlib
 import posixpath
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 import numpy as np
 from ase.atoms import Atoms
@@ -59,7 +59,7 @@ class UnfoldingPrism(PrismBase):
     def __init__(
         self,
         cell: np.ndarray,
-        pbc: Union[bool, tuple[bool, bool, bool]] = (True, True, True),
+        pbc: bool | tuple[bool, bool, bool] = (True, True, True),
         digits: int = 10,
     ):
         # Temporary fix. Since the arguments for the constructor have changed, try to see if it is compatible with
@@ -67,11 +67,9 @@ class UnfoldingPrism(PrismBase):
         if isinstance(pbc, bool):
             pbc = (pbc, pbc, pbc)
         try:
-            super(UnfoldingPrism, self).__init__(
-                cell, pbc=np.array(pbc), tolerance=float("1e-{}".format(digits))
-            )
+            super().__init__(cell, pbc=np.array(pbc), tolerance=float(f"1e-{digits}"))
         except TypeError:
-            super(UnfoldingPrism, self).__init__(cell, pbc=np.array(pbc), digits=digits)  # type: ignore[call-arg]
+            super().__init__(cell, pbc=np.array(pbc), digits=digits)  # type: ignore[call-arg]
         a, b, c = cell
         an, bn, cn = [np.linalg.norm(v) for v in cell]
 
@@ -101,7 +99,7 @@ class UnfoldingPrism(PrismBase):
 
         def fold(
             vec: np.ndarray, pvec: np.ndarray, i: int
-        ) -> Tuple[List[float], float]:
+        ) -> tuple[list[float], float]:
             p = pvec[i]
             x = vec[i] + 0.5 * p
             n = (np.mod(x, p) - x) / p
@@ -124,11 +122,10 @@ class UnfoldingPrism(PrismBase):
         self.ns = [n1, n2, n3]
 
         d_a = apre[0, 0] / 2 - apre[1, 0]
-        if np.abs(d_a) < self.acc:
-            if d_a < 0:
-                print("debug: apply shift")
-                apre[1, 0] += 2 * d_a
-                apre[2, 0] += 2 * d_a
+        if np.abs(d_a) < self.acc and d_a < 0:
+            print("debug: apply shift")
+            apre[1, 0] += 2 * d_a
+            apre[2, 0] += 2 * d_a
 
         self.A = apre
 
@@ -169,7 +166,7 @@ class UnfoldingPrism(PrismBase):
         c = cpp - n2 * bp - n3 * a
         return np.array([a, b, c])
 
-    def pos_to_lammps(self, position: np.ndarray) -> Tuple[float, float, float]:
+    def pos_to_lammps(self, position: np.ndarray) -> tuple[float, float, float]:
         """
         Rotate an ase-cell position to the lammps cell orientation
 
@@ -189,7 +186,7 @@ class UnfoldingPrism(PrismBase):
         """Convert ``f`` to a string rounded to the Cartesian precision of the prism."""
         return str(dec.Decimal(str(f)).quantize(self.car_prec, dec.ROUND_HALF_EVEN))
 
-    def get_lammps_prism_str(self) -> Tuple[str, ...]:
+    def get_lammps_prism_str(self) -> tuple[str, ...]:
         """Return a tuple of strings"""
         p = self.get_lammps_prism()
         return tuple([self.f2s(x) for x in p])
@@ -216,18 +213,18 @@ class LammpsStructure:
 
     def __init__(
         self,
-        bond_dict: Optional[Dict] = None,
+        bond_dict: dict | None = None,
         units: str = "metal",
         atom_type: str = "atomic",
     ):
         self._string_input: str = ""
-        self._structure: Optional[Atoms] = None
-        self._potential: Optional[Any] = None
-        self._el_eam_lst: List[str] = []
-        self.atom_type: Optional[str] = None
-        self.cutoff_radius: Optional[float] = None
+        self._structure: Atoms | None = None
+        self._potential: Any | None = None
+        self._el_eam_lst: list[str] = []
+        self.atom_type: str | None = None
+        self.cutoff_radius: float | None = None
         self.digits: int = 10
-        self._bond_dict: Optional[Dict] = bond_dict
+        self._bond_dict: dict | None = bond_dict
         self._force_skewed: bool = False
         self._units: str = units
         self._atom_type: str = atom_type
@@ -241,7 +238,7 @@ class LammpsStructure:
         self._potential = val
 
     @property
-    def structure(self) -> Optional[Atoms]:
+    def structure(self) -> Atoms | None:
         """The ASE :class:`~ase.atoms.Atoms` object associated with this instance."""
         return self._structure
 
@@ -289,12 +286,12 @@ class LammpsStructure:
         return input_str
 
     @property
-    def el_eam_lst(self) -> List[str]:
+    def el_eam_lst(self) -> list[str]:
         """Ordered list of element symbols as defined in the LAMMPS potential file."""
         return self._el_eam_lst
 
     @el_eam_lst.setter
-    def el_eam_lst(self, el_eam_lst: List[str]):
+    def el_eam_lst(self, el_eam_lst: list[str]):
         """
         Set the ordered element list used to assign LAMMPS integer type IDs.
 
@@ -306,7 +303,7 @@ class LammpsStructure:
         self._el_eam_lst = el_eam_lst
 
     @staticmethod
-    def get_lammps_id_dict(el_eam_lst: List[str]) -> Dict[str, int]:
+    def get_lammps_id_dict(el_eam_lst: list[str]) -> dict[str, int]:
         """
         Build a mapping from element symbol to LAMMPS integer type ID (1-based).
 
@@ -330,11 +327,11 @@ class LammpsStructure:
     def lammps_header(
         structure: Atoms,
         cell_dimensions: str,
-        species_lammps_id_dict: Dict[str, int],
-        nbonds: Optional[int] = None,
-        nangles: Optional[int] = None,
-        nbond_types: Optional[int] = None,
-        nangle_types: Optional[int] = None,
+        species_lammps_id_dict: dict[str, int],
+        nbonds: int | None = None,
+        nangles: int | None = None,
+        nbond_types: int | None = None,
+        nangle_types: int | None = None,
     ) -> str:
         """
         Generate the header section of a LAMMPS data file.
@@ -359,24 +356,24 @@ class LammpsStructure:
         """
         atomtypes = (
             "Start File for LAMMPS \n"
-            + "{0:d} atoms".format(len(structure))
+            + f"{len(structure):d} atoms"
             + " \n"
-            + "{0} atom types".format(len(species_lammps_id_dict.keys()))
+            + f"{len(species_lammps_id_dict.keys())} atom types"
             + " \n"
         )  # '{0} atom types'.format(structure.get_number_of_species()) + ' \n'
         if nbonds is not None:
-            atomtypes += "{0:d} bonds\n".format(nbonds)
+            atomtypes += f"{nbonds:d} bonds\n"
         if nangles is not None:
-            atomtypes += "{0:d} angles\n".format(nangles)
+            atomtypes += f"{nangles:d} angles\n"
         if nbond_types is not None:
-            atomtypes += "{0:d} bond types\n".format(nbond_types)
+            atomtypes += f"{nbond_types:d} bond types\n"
         if nangle_types is not None:
-            atomtypes += "{0:d} angle types\n".format(nangle_types)
+            atomtypes += f"{nangle_types:d} angle types\n"
 
         masses = "Masses\n\n"
         for el, idx in species_lammps_id_dict.items():
             mass = atomic_masses[atomic_numbers[el]]
-            masses += "{0:3d} {1:f}  # ({2}) \n".format(idx, mass, el)
+            masses += f"{idx:3d} {mass:f}  # ({el}) \n"
 
         return atomtypes + "\n" + cell_dimensions + "\n" + masses + "\n"
 
@@ -401,13 +398,11 @@ class LammpsStructure:
         # Please, be carefull and not round xhi, yhi,..., otherwise you will get too skew cell from LAMMPS.
         # These values are already checked in UnfoldingPrism to fullfill LAMMPS skewness criteria
         simulation_cell = (
-            "0. {} xlo xhi\n".format(xhi)
-            + "0. {} ylo yhi\n".format(yhi)
-            + "0. {} zlo zhi\n".format(zhi)
+            f"0. {xhi} xlo xhi\n" + f"0. {yhi} ylo yhi\n" + f"0. {zhi} zlo zhi\n"
         )
 
         if is_skewed(self._structure) or self._force_skewed:
-            simulation_cell += "{0} {1} {2} xy xz yz\n".format(xy, xz, yz)
+            simulation_cell += f"{xy} {xz} {yz} xy xz yz\n"
 
         return simulation_cell
 
@@ -437,9 +432,7 @@ class LammpsStructure:
             c = np.zeros(3)
             c[:dim] = coord
             atoms += (
-                "{0:d} {1:d} {2:.15f} {3:.15f} {4:.15f}".format(
-                    id_atom + 1, species_lammps_id_dict[el], c[0], c[1], c[2]
-                )
+                f"{id_atom + 1:d} {species_lammps_id_dict[el]:d} {c[0]:.15f} {c[1]:.15f} {c[2]:.15f}"
                 + "\n"
             )
         return (
@@ -476,14 +469,7 @@ class LammpsStructure:
             c = np.zeros(3)
             c[:dim] = coord
             atoms += (
-                "{0:d} {1:d} {2:f} {3:.15f} {4:.15f} {5:.15f}".format(
-                    id_atom + 1,
-                    species_lammps_id_dict[el],
-                    el_charge_lst[id_atom],
-                    c[0],
-                    c[1],
-                    c[2],
-                )
+                f"{id_atom + 1:d} {species_lammps_id_dict[el]:d} {el_charge_lst[id_atom]:f} {c[0]:.15f} {c[1]:.15f} {c[2]:.15f}"
                 + "\n"
             )
         return (
@@ -496,7 +482,7 @@ class LammpsStructure:
             + "\n"
         )
 
-    def rotate_positions(self, structure: Atoms) -> List[Tuple[float, float, float]]:
+    def rotate_positions(self, structure: Atoms) -> list[tuple[float, float, float]]:
         """
         Rotate all atomic positions in given structure according to new Prism cell
 
@@ -512,7 +498,7 @@ class LammpsStructure:
         coords = [prism.pos_to_lammps(position) for position in structure.positions]
         return coords
 
-    def rotate_velocities(self, structure: Atoms) -> List[Tuple[float, float, float]]:
+    def rotate_velocities(self, structure: Atoms) -> list[tuple[float, float, float]]:
         """
         Rotate all atomic velocities in given structure according to new Prism cell
 
@@ -528,7 +514,7 @@ class LammpsStructure:
         vels = [prism.pos_to_lammps(vel) for vel in structure.get_velocities()]
         return vels
 
-    def write_file(self, file_name: str, cwd: Optional[str] = None):
+    def write_file(self, file_name: str, cwd: str | None = None):
         """
         Write GenericParameters to input file
 
@@ -539,9 +525,8 @@ class LammpsStructure:
         if cwd is not None:
             file_name = posixpath.join(cwd, file_name)
 
-        with open(file_name, "w") as f:
-            for line in self._string_input:
-                f.write(line)
+        with pathlib.Path(file_name).open("w") as f:
+            f.writelines(self._string_input)
 
 
 def is_skewed(structure: Atoms, tolerance: float = 1.0e-8) -> bool:
@@ -558,19 +543,16 @@ def is_skewed(structure: Atoms, tolerance: float = 1.0e-8) -> bool:
     """
     volume = structure.get_volume()
     prod = np.linalg.norm(structure.cell, axis=-1).prod()
-    if volume > 0:
-        if abs(volume - prod) / volume < tolerance:
-            return False
-    return True
+    return not (volume > 0 and abs(volume - prod) / volume < tolerance)
 
 
 def write_lammps_datafile(
     structure: Atoms,
-    potential_elements: Union[np.ndarray, list[str]],
-    bond_dict: Optional[Dict] = None,
+    potential_elements: np.ndarray | list[str],
+    bond_dict: dict | None = None,
     units: str = "metal",
     file_name: str = "lammps.data",
-    working_directory: Optional[str] = None,
+    working_directory: str | None = None,
     atom_type: str = "atomic",
 ) -> None:
     """
@@ -597,7 +579,7 @@ def write_lammps_datafile(
             (default), ``"charge"``, ``"bond"``, or ``"full"``.
     """
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
-    lammps_str.el_eam_lst = cast(List[str], list(potential_elements))
+    lammps_str.el_eam_lst = cast(list[str], list(potential_elements))
     lammps_str.structure = structure
     lammps_str.write_file(file_name=file_name, cwd=working_directory)
 

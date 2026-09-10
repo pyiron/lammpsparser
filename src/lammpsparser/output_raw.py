@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import pathlib
 import warnings
 from dataclasses import asdict, dataclass, field
 from io import StringIO
-from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -11,21 +11,21 @@ import pandas as pd
 
 @dataclass
 class DumpData:
-    steps: List = field(default_factory=lambda: [])
-    natoms: List = field(default_factory=lambda: [])
-    cells: List = field(default_factory=lambda: [])
-    indices: List = field(default_factory=lambda: [])
-    forces: List = field(default_factory=lambda: [])
-    mean_forces: List = field(default_factory=lambda: [])
-    velocities: List = field(default_factory=lambda: [])
-    mean_velocities: List = field(default_factory=lambda: [])
-    unwrapped_positions: List = field(default_factory=lambda: [])
-    mean_unwrapped_positions: List = field(default_factory=lambda: [])
-    positions: List = field(default_factory=lambda: [])
-    computes: Dict = field(default_factory=lambda: {})
+    steps: list = field(default_factory=list)
+    natoms: list = field(default_factory=list)
+    cells: list = field(default_factory=list)
+    indices: list = field(default_factory=list)
+    forces: list = field(default_factory=list)
+    mean_forces: list = field(default_factory=list)
+    velocities: list = field(default_factory=list)
+    mean_velocities: list = field(default_factory=list)
+    unwrapped_positions: list = field(default_factory=list)
+    mean_unwrapped_positions: list = field(default_factory=list)
+    positions: list = field(default_factory=list)
+    computes: dict = field(default_factory=dict)
 
 
-def to_amat(l_list: Union[np.ndarray, List]) -> List:
+def to_amat(l_list: np.ndarray | list) -> list:
     """
     Convert LAMMPS box bounds to a cell matrix in the lower-triangular convention used by ASE.
 
@@ -89,7 +89,7 @@ def to_amat(l_list: Union[np.ndarray, List]) -> List:
     return cell
 
 
-def parse_raw_dump_from_h5md(file_name: str) -> Dict:
+def parse_raw_dump_from_h5md(file_name: str) -> dict:
     """
     Parse a LAMMPS dump file written in H5MD format.
 
@@ -128,7 +128,7 @@ def parse_raw_dump_from_h5md(file_name: str) -> Dict:
     }
 
 
-def parse_raw_dump_from_text(file_name: str) -> Dict:
+def parse_raw_dump_from_text(file_name: str) -> dict:
     """
     Parse a LAMMPS custom text dump file into a structured dictionary.
 
@@ -163,7 +163,7 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
         - ``"positions"`` (list of numpy.ndarray): Wrapped fractional coordinates, shape ``(N, 3)``.
         - ``"computes"`` (dict): Per-atom compute results keyed by compute ID (``c_`` prefix stripped).
     """
-    with open(file_name, "r") as f:
+    with pathlib.Path(file_name).open("r") as f:
         dump = DumpData()
 
         for line in f:
@@ -183,7 +183,7 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
 
             elif "ITEM: ATOMS" in line:
                 # get column names from line
-                columns = line.lstrip("ITEM: ATOMS").split()
+                columns = line.removeprefix("ITEM: ATOMS").split()
 
                 # Read line by line of snapshot into a string buffer
                 # Than parse using pandas for speed and column acces
@@ -270,7 +270,7 @@ def parse_raw_dump_from_text(file_name: str) -> Dict:
                 for k in columns:
                     if k.startswith("c_"):
                         kk = k.replace("c_", "")
-                        if kk not in dump.computes.keys():
+                        if kk not in dump.computes:
                             dump.computes[kk] = []
                         dump.computes[kk].append(df[k].array)
 
@@ -303,7 +303,7 @@ def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
         are present a ``LogStep`` column (integer run index, 0-based) is
         appended.
     """
-    with open(file_name, "r") as f:
+    with pathlib.Path(file_name).open("r") as f:
         dfs = []
         read_thermo = False
         for line in f:
@@ -314,7 +314,7 @@ def parse_raw_lammps_log(file_name: str) -> pd.DataFrame:
                 read_thermo = True
 
             if read_thermo:
-                if line.startswith("Loop") or line.startswith("ERROR"):
+                if line.startswith(("Loop", "ERROR")):
                     read_thermo = False
                     dfs.append(
                         pd.read_csv(StringIO(thermo_lines), sep="\\s+", engine="c")

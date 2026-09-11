@@ -35,9 +35,9 @@ classifiers = [
 ]
 dependencies = [
     "ase==3.29.0",
-    "numpy==2.4.6",
+    "numpy==2.5.3",
     "pandas==3.0.5",
-    "scipy==1.17.1",
+    "scipy==1.18.0",
 ]
 dynamic = ["version"]
 
@@ -48,7 +48,7 @@ Repository = "https://github.com/pyiron/lammpsparser"
 
 [project.optional-dependencies]
 h5md = ["h5py==3.16.0"]
-compatibility = ["structuretoolkit==0.0.45"]
+compatibility = ["structuretoolkit==0.0.46"]
 
 [tool.hatch.build]
 include = [

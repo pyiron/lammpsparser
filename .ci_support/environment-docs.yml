@@ -12,6 +12,6 @@ dependencies:
 - ase =3.29.0
 - h5py =3.16.0
 - numpy =2.5.3
-- pandas =3.0.5
-- scipy =1.18.0
-- structuretoolkit =0.0.46
+- pandas =3.0.6
+- scipy =1.18.1
+- structuretoolkit =0.0.47

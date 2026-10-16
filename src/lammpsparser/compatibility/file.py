@@ -36,6 +36,7 @@ def lammps_file_interface_function(
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
     dump_final_structure: bool = False,
+    force_skewed: bool = False,
 ):
     """
     A single function to execute a LAMMPS calculation based on the LAMMPS job interface implemented in lammpsparser
@@ -245,6 +246,7 @@ def lammps_file_interface_function(
         file_name="lammps.data",
         working_directory=working_directory,
         atom_type=atom_type,
+        force_skewed=force_skewed,
     )
 
     shell = subprocess.check_output(

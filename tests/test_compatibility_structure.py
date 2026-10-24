@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import patch
+
 import numpy as np
-from ase.build import bulk
 from ase.atoms import Atoms
+from ase.build import bulk
 
 try:
     from lammpsparser.compatibility.structure import (
@@ -141,13 +142,15 @@ class TestLammpsStructureCompatibilitySetterBond(unittest.TestCase):
         lsc = LammpsStructureCompatibility(atom_type="bond")
         lsc.el_eam_lst = ["Fe"]
         lsc._structure = _Dummy1D()
-        with patch.object(
-            LammpsStructureCompatibility,
-            "rotate_positions",
-            return_value=[(0.0,), (1.0,)],
+        with (
+            patch.object(
+                LammpsStructureCompatibility,
+                "rotate_positions",
+                return_value=[(0.0,), (1.0,)],
+            ),
+            self.assertRaises(ValueError),
         ):
-            with self.assertRaises(ValueError):
-                lsc.structure_bond()
+            lsc.structure_bond()
 
 
 @unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")

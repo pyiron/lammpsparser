@@ -6,6 +6,7 @@ the ``index`` argument which selects a specific frame from a multi‑frame outpu
 """
 
 import unittest
+
 import numpy as np
 from ase.build import bulk
 

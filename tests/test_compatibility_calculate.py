@@ -1,16 +1,17 @@
 import unittest
 import warnings
+
 import numpy as np
 from ase.build import bulk
 
 from lammpsparser.compatibility.calculate import (
+    _get_rotation_matrix,
+    _is_isotropic_hydrostatic,
+    _modify_structure_to_allow_requested_deformation,
+    _pressure_to_lammps,
+    _set_initial_velocity,
     calc_md,
     calc_minimize,
-    _set_initial_velocity,
-    _pressure_to_lammps,
-    _get_rotation_matrix,
-    _modify_structure_to_allow_requested_deformation,
-    _is_isotropic_hydrostatic,
 )
 
 

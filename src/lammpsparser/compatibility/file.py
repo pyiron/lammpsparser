@@ -5,6 +5,7 @@ import pathlib
 import shutil
 import subprocess
 from dataclasses import asdict
+from typing import Optional
 
 import pandas
 from ase.atoms import Atoms

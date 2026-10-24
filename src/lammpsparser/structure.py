@@ -554,6 +554,7 @@ def write_lammps_datafile(
     file_name: str = "lammps.data",
     working_directory: str | None = None,
     atom_type: str = "atomic",
+    force_skewed: bool = False,
 ) -> None:
     """
     Write an ASE structure to a LAMMPS data file.
@@ -579,6 +580,7 @@ def write_lammps_datafile(
             (default), ``"charge"``, ``"bond"``, or ``"full"``.
     """
     lammps_str = LammpsStructure(bond_dict=bond_dict, units=units, atom_type=atom_type)
+    lammps_str._force_skewed = force_skewed
     lammps_str.el_eam_lst = cast(list[str], list(potential_elements))
     lammps_str.structure = structure
     lammps_str.write_file(file_name=file_name, cwd=working_directory)

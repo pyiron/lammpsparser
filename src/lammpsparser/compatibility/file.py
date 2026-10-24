@@ -5,7 +5,6 @@ import pathlib
 import shutil
 import subprocess
 from dataclasses import asdict
-from typing import Optional
 
 import pandas
 from ase.atoms import Atoms
@@ -37,8 +36,8 @@ def lammps_file_interface_function(
     read_restart_file: bool = False,
     restart_file: str = "restart.out",
     dump_final_structure: bool = False,
-    n_print_dump: Optional[int] = None,
-    n_print_thermo: Optional[int] = None,
+    n_print_dump: int | None = None,
+    n_print_thermo: int | None = None,
     force_skewed: bool = False,
 ):
     """

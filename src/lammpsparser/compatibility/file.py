@@ -166,7 +166,7 @@ def lammps_file_interface_function(
     dump_format = '"%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"'
 
     lmp_str_lst += potential_lst
-    lmp_str_lst += ["variable dumptime equal {} ".format(dump_interval)]
+    lmp_str_lst += [f"variable dumptime equal {dump_interval} "]
     lmp_str_lst += [
         "dump 1 all custom ${dumptime} dump.out " + dump_fields,
         "dump_modify 1 sort id format line " + dump_format,

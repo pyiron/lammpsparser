@@ -5,9 +5,7 @@ from typing import cast
 
 import numpy as np
 from ase.atoms import Atoms
-from structuretoolkit.analyse import get_neighbors
-from structuretoolkit.common import select_index
-
+from lammpsparser.compatibility.neighbors import get_neighbors, select_index
 from lammpsparser.structure import LammpsStructure
 
 
@@ -329,7 +327,7 @@ def get_bonds(
     """
     Identify bonds in a structure based on neighbour distances.
 
-    Wraps :func:`structuretoolkit.analyse.get_neighbors` and its
+    Wraps :func:`lammpsparser.compatibility.neighbors.get_neighbors` and its
     ``get_bonds`` method to return a shell-based bond list for each atom.
 
     Args:
@@ -344,16 +342,12 @@ def get_bonds(
 
     Returns:
         list: Nested bond list as returned by
-        :meth:`structuretoolkit.analyse.neighbors.get_bonds`.
+        :meth:`lammpsparser.compatibility.neighbors.Neighbors.get_bonds`.
     """
     neighbors = get_neighbors(
         structure=structure,
         cutoff_radius=radius,
         num_neighbors=num_neighbors,
-        tolerance=2,
-        id_list=None,
         width_buffer=1.2,
-        mode="ragged",
-        norm_order=2,
     )
     return neighbors.get_bonds(radius=radius, max_shells=max_shells, prec=prec)

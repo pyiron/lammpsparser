@@ -5,18 +5,12 @@ import numpy as np
 from ase.atoms import Atoms
 from ase.build import bulk
 
-try:
-    from lammpsparser.compatibility.structure import (
-        LammpsStructureCompatibility,
-        get_bonds,
-    )
-
-    skip_structuretoolkit_test = False
-except ImportError:
-    skip_structuretoolkit_test = True
+from lammpsparser.compatibility.structure import (
+    LammpsStructureCompatibility,
+    get_bonds,
+)
 
 
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilityInit(unittest.TestCase):
     def test_init_defaults(self):
         lsc = LammpsStructureCompatibility()
@@ -58,7 +52,6 @@ class TestLammpsStructureCompatibilityInit(unittest.TestCase):
         self.assertEqual(lsc.molecule_ids, [1, 1, 2, 2])
 
 
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilitySetterAtomic(unittest.TestCase):
     def test_structure_setter_atomic(self):
         lsc = LammpsStructureCompatibility(atom_type="atomic")
@@ -81,7 +74,6 @@ class TestLammpsStructureCompatibilitySetterAtomic(unittest.TestCase):
         self.assertIn("1.500000", lsc._string_input)
 
 
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilitySetterBond(unittest.TestCase):
     def test_structure_setter_bond(self):
         lsc = LammpsStructureCompatibility(atom_type="bond")
@@ -153,7 +145,6 @@ class TestLammpsStructureCompatibilitySetterBond(unittest.TestCase):
             lsc.structure_bond()
 
 
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestLammpsStructureCompatibilitySetterFull(unittest.TestCase):
     def test_structure_setter_full_no_potential(self):
         lsc = LammpsStructureCompatibility(atom_type="full")
@@ -191,7 +182,6 @@ class TestLammpsStructureCompatibilitySetterFull(unittest.TestCase):
         self.assertIn("1.500000", lsc._string_input)
 
 
-@unittest.skipIf(skip_structuretoolkit_test, "structuretoolkit not available")
 class TestGetBonds(unittest.TestCase):
     def test_get_bonds_default(self):
         structure = bulk("Al", a=4.05, cubic=True).repeat([2, 2, 1])

@@ -5,6 +5,7 @@ from typing import cast
 
 import numpy as np
 from ase.atoms import Atoms
+
 from lammpsparser.compatibility.neighbors import get_neighbors, select_index
 from lammpsparser.structure import LammpsStructure
 

@@ -3,7 +3,7 @@ channels:
 dependencies:
 - hatchling =1.33.0
 - hatch-vcs
-- ase =3.29.0
+- ase =3.23.0
 - h5py =3.9.0
 - numpy =1.26.0
 - pandas =2.0.3

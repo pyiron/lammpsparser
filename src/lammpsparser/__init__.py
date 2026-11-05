@@ -4,6 +4,12 @@ from lammpsparser.compatibility.file import (
     lammps_file_initialization,
     lammps_file_interface_function,
 )
+from lammpsparser.compatibility.mlip import (
+    check_mlip_convergence,
+    get_mlip_selected_structures,
+    load_mlip_cfgs,
+    write_mlip_input_file,
+)
 from lammpsparser.output import parse_lammps_output as parse_lammps_output_files
 from lammpsparser.potential import (
     get_potential_by_name,
@@ -28,11 +34,15 @@ __all__ = [
     "calc_md",
     "calc_minimize",
     "calc_static",
+    "check_mlip_convergence",
+    "get_mlip_selected_structures",
     "get_potential_by_name",
     "get_potential_dataframe",
     "lammps_file_initialization",
     "lammps_file_interface_function",
+    "load_mlip_cfgs",
     "parse_lammps_output_files",
     "validate_potential_dataframe",
     "write_lammps_structure",
+    "write_mlip_input_file",
 ]

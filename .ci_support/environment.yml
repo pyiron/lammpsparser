@@ -5,6 +5,6 @@ dependencies:
 - hatch-vcs =0.5.0
 - ase =3.29.0
 - h5py =3.16.0
-- numpy =2.5.3
+- numpy =2.5.4
 - pandas =3.1.1
 - scipy =1.18.1

@@ -7,9 +7,10 @@ if __name__ == "__main__":
 
     lst = []
     if "optional-dependencies" in data["project"]:
-        for sub_lst in data["project"]["optional-dependencies"].values():
-            for el in sub_lst:
-                lst.append(el)
+        for key, sub_lst in data["project"]["optional-dependencies"].items():
+            if key != "docs":
+                for el in sub_lst:
+                    lst.append(el)
 
     data["project"]["dependencies"] += [
         el for el in set(lst) if not el.startswith("pwtools")
